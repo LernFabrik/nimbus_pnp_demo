@@ -5,4 +5,4 @@
 
 |Branch    | ROS Distro | Status    |
 |----------|------------|-----------|
-|master    | Melodic    |[![Build Status](https://travis-ci.org/lernfabrik/nimbus-ros.svg?branch=master)](https://travis-ci.org/lernfabrik/nimbus-ros)|
+|master    | Melodic    |[![Build Status](https://travis-ci.com/prachandabhanu/nimbus_pnp_demo.svg?token=yqkyfk4FvxS9Ln2vKCUM&branch=master)](https://travis-ci.com/prachandabhanu/nimbus_pnp_demo)|
