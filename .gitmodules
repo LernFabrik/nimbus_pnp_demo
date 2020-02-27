@@ -1,0 +1,3 @@
+[submodule "nimbus-ros"]
+	path = nimbus-ros
+	url = https://github.com/lernfabrik/nimbus-ros.git
