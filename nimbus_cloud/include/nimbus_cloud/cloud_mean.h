@@ -24,4 +24,56 @@ public:
 
 };
 
+template <class T>
+cloudMean<T>::cloudMean(ros::NodeHandle nh): _nh(nh){}
+template <class T>
+cloudMean<T>::~cloudMean(){}
+
+template <class T>
+void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
+    if(cloudQueue.isEmpty()) return;
+    std::vector<float> conf(width*height, 0);
+    std::vector<float> mnCounter(width*height, 0);
+    std::vector<float> addX(width*height, 0);
+    std::vector<float> addY(width*height, 0);
+    std::vector<float> addZ(width*height, 0);
+    std::vector<float> ampt(width*height, 0);
+    //Point_Cloud sum;
+    PointCloud tempC;
+    res.width = width;
+    res.height = height;
+    while (!cloudQueue.isEmpty()){
+        cloudQueue.dequeue(tempC);
+        int i = 0;
+        for(int i = 0; i < tempC.points.size(); i++){
+            if(!std::isnan(tempC.points[i].x)){
+                addX[i] += tempC.points[i].x;
+                addY[i] += tempC.points[i].y;
+                addZ[i] += tempC.points[i].z;
+                ampt[i] += tempC.points[i].intensity;
+                mnCounter[i] +=1;
+                // ROS_INFO("X: %f, Y: %f, Z:%f AMP: %f, Mean Counter: %d", addX[i], addY[i], addZ[i], ampt[i], mnCounter[i]);
+            }else{
+                conf[i] = 1;
+                mnCounter[i] = 0;
+            }
+        }
+    }
+    for(int i = 0; i < mnCounter.size(); i++){
+        pcl::PointXYZI temPoint;
+        if(mnCounter[i] == 0){
+            temPoint.x = NAN;
+            temPoint.y = NAN;
+            temPoint.z = NAN;
+            temPoint.intensity = NAN;
+        }else{
+            temPoint.x = addX[i] / mnCounter[i];
+            temPoint.y = addY[i] / mnCounter[i];
+            temPoint.z = addZ[i] / mnCounter[i];
+            temPoint.intensity = ampt[i] / mnCounter[i] * 0.1;
+        }
+        res.points.push_back(temPoint);
+    }
+}
+
 #endif

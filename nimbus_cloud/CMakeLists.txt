@@ -51,7 +51,7 @@ add_definitions(${PCL_DEFINITIONS})
 ############################################################################
 ##################### !Add Library! ########################################
 ############################################################################
-add_library(cloud_edit "src/cloud_edit.cpp")
+add_library(cloud_edit src/cloud_edit.cpp)
 add_dependencies(cloud_edit ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
 
@@ -60,5 +60,4 @@ target_link_libraries(cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
 ###################### !Executable!##########################################
 #############################################################################
 add_executable(nimbus_io_node src/nimbus_io.cpp)
-add_dependencies(nimbus_io_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(nimbus_io_node ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
+target_link_libraries(nimbus_io_node cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})

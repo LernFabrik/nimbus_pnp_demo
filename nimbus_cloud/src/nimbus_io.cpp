@@ -33,57 +33,6 @@ void callback(const PointCloud::ConstPtr& msg){
     newCloud = true;
 }
 
-template <class T>
-cloudMean<T>::cloudMean(ros::NodeHandle nh): _nh(nh){}
-template <class T>
-cloudMean<T>::~cloudMean(){}
-
-template <class T>
-void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
-    if(cloudQueue.isEmpty()) return;
-    std::vector<float> conf(width*height, 0);
-    std::vector<float> mnCounter(width*height, 0);
-    std::vector<float> addX(width*height, 0);
-    std::vector<float> addY(width*height, 0);
-    std::vector<float> addZ(width*height, 0);
-    std::vector<float> ampt(width*height, 0);
-    //Point_Cloud sum;
-    PointCloud tempC;
-    res.width = width;
-    res.height = height;
-    while (!cloudQueue.isEmpty()){
-        cloudQueue.dequeue(tempC);
-        int i = 0;
-        for(int i = 0; i < tempC.points.size(); i++){
-            if(!std::isnan(tempC.points[i].x)){
-                addX[i] += tempC.points[i].x;
-                addY[i] += tempC.points[i].y;
-                addZ[i] += tempC.points[i].z;
-                ampt[i] += tempC.points[i].intensity;
-                mnCounter[i] +=1;
-                // ROS_INFO("X: %f, Y: %f, Z:%f AMP: %f, Mean Counter: %d", addX[i], addY[i], addZ[i], ampt[i], mnCounter[i]);
-            }else{
-                conf[i] = 1;
-                mnCounter[i] = 0;
-            }
-        }
-    }
-    for(int i = 0; i < mnCounter.size(); i++){
-        pcl::PointXYZI temPoint;
-        if(mnCounter[i] == 0){
-            temPoint.x = NAN;
-            temPoint.y = NAN;
-            temPoint.z = NAN;
-            temPoint.intensity = NAN;
-        }else{
-            temPoint.x = addX[i] / mnCounter[i];
-            temPoint.y = addY[i] / mnCounter[i];
-            temPoint.z = addZ[i] / mnCounter[i];
-            temPoint.intensity = ampt[i] / mnCounter[i] * 0.1;
-        }
-        res.points.push_back(temPoint);
-    }
-}
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_driver_io_node");
@@ -93,7 +42,7 @@ int main(int argc, char** argv){
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     cloudMean<pcl::PointXYZI> cE(nh);
-    cloudEdit<pcl::PointXYZI> cloud_edit(nh);
+    nimbus::cloudEdit <pcl::PointXYZI> cloud_edit(nh);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "Mcamera";
@@ -119,10 +68,10 @@ int main(int argc, char** argv){
                 PointCloud::Ptr cloud(new PointCloud());
                 PointCloud::Ptr cloudE(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
-                //cloud_edit.editC(cloud, cloud_blob.width, cloud_blob.height, *cloudE);
-                cloud->header.frame_id= "Mcamera";
-                pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
-                pub.publish(cloud);
+                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.7, 0.6, *cloudE);
+                cloudE->header.frame_id= "Mcamera";
+                pcl_conversions::toPCL(ros::Time::now(), cloudE->header.stamp);
+                pub.publish(cloudE);
                 cloud.reset();
             }
             // cloud_blob.points.clear()
