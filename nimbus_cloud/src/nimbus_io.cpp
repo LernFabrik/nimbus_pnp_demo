@@ -8,9 +8,11 @@
 #include <boost/foreach.hpp>
 
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
 
-#include <nimbus_cloud/cloudEdit.h>
+#include <nimbus_cloud/cloud_mean.h>
+#include <nimbus_cloud/cloud_edit.h>
 
 typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
 PointCloud cloud_blob;
@@ -32,12 +34,12 @@ void callback(const PointCloud::ConstPtr& msg){
 }
 
 template <class T>
-cloudEdit<T>::cloudEdit(){}
+cloudMean<T>::cloudMean(ros::NodeHandle nh): _nh(nh){}
 template <class T>
-cloudEdit<T>::~cloudEdit(){}
+cloudMean<T>::~cloudMean(){}
 
 template <class T>
-void cloudEdit<T>::meanFilter(pcl::PointCloud<pcl::PointXYZI> &res, int width, int height){
+void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
     if(cloudQueue.isEmpty()) return;
     std::vector<float> conf(width*height, 0);
     std::vector<float> mnCounter(width*height, 0);
@@ -45,9 +47,8 @@ void cloudEdit<T>::meanFilter(pcl::PointCloud<pcl::PointXYZI> &res, int width, i
     std::vector<float> addY(width*height, 0);
     std::vector<float> addZ(width*height, 0);
     std::vector<float> ampt(width*height, 0);
-
     //Point_Cloud sum;
-    Point_Cloud tempC;
+    PointCloud tempC;
     res.width = width;
     res.height = height;
     while (!cloudQueue.isEmpty()){
@@ -69,7 +70,7 @@ void cloudEdit<T>::meanFilter(pcl::PointCloud<pcl::PointXYZI> &res, int width, i
     }
     for(int i = 0; i < mnCounter.size(); i++){
         pcl::PointXYZI temPoint;
-        if(mnCounter[i] <= 2){
+        if(mnCounter[i] == 0){
             temPoint.x = NAN;
             temPoint.y = NAN;
             temPoint.z = NAN;
@@ -78,12 +79,11 @@ void cloudEdit<T>::meanFilter(pcl::PointCloud<pcl::PointXYZI> &res, int width, i
             temPoint.x = addX[i] / mnCounter[i];
             temPoint.y = addY[i] / mnCounter[i];
             temPoint.z = addZ[i] / mnCounter[i];
-            temPoint.intensity = ampt[i] / mnCounter[i];
+            temPoint.intensity = ampt[i] / mnCounter[i] * 0.1;
         }
         res.points.push_back(temPoint);
     }
 }
-
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_driver_io_node");
@@ -92,7 +92,8 @@ int main(int argc, char** argv){
     ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
-    cloudEdit<PointCloud> cE;
+    cloudMean<pcl::PointXYZI> cE(nh);
+    cloudEdit<pcl::PointXYZI> cloud_edit(nh);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "Mcamera";
@@ -100,21 +101,25 @@ int main(int argc, char** argv){
     cameraPose.transform.translation.x = 0;
     cameraPose.transform.translation.y = 0;
     cameraPose.transform.translation.z = 1;
-    cameraPose.transform.rotation.x = -0.7071068;
-    cameraPose.transform.rotation.y = 0;
-    cameraPose.transform.rotation.z = 0;
-    cameraPose.transform.rotation.w = 0.7071068;
+    tf2::Quaternion q;
+    q.setRPY(-1.57, 1.57, 0);
+    cameraPose.transform.rotation.x = q.x();
+    cameraPose.transform.rotation.y = q.y();
+    cameraPose.transform.rotation.z = q.z();
+    cameraPose.transform.rotation.w = q.w();
     
     while (ros::ok())
     {
         if(newCloud){
-            if(cE.cloudQueue.size() < 10){
+            if(cE.cloudQueue.size() < 20){
                 cE.cloudQueue.enqueue(cloud_blob);
                 newCloud = false;
             }
             else{
-                PointCloud::Ptr cloud(new PointCloud);
+                PointCloud::Ptr cloud(new PointCloud());
+                PointCloud::Ptr cloudE(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
+                //cloud_edit.editC(cloud, cloud_blob.width, cloud_blob.height, *cloudE);
                 cloud->header.frame_id= "Mcamera";
                 pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
                 pub.publish(cloud);
