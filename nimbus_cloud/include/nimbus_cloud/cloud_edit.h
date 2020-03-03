@@ -5,6 +5,9 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
 
 namespace nimbus{
     template <class T>
@@ -19,10 +22,11 @@ namespace nimbus{
         ~cloudEdit();
         void remover(const PointCloudConstPtr blob, 
                     int width, int height, float perW, float perH,
-                    pcl::PointCloud<T> &res);
-        void zRemover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+                    PointCloud &res);
+        void zRemover(const PointCloudConstPtr blob,
                     float maxDis, float minDis,
-                    pcl::PointCloud<pcl::PointXYZI> &res);
+                    PointCloud &res);
+        double computeCloudResolution(const PointCloudConstPtr &cloud);
     };
 }
 

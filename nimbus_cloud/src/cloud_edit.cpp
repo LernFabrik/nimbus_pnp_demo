@@ -9,7 +9,7 @@ nimbus::cloudEdit<T>::~cloudEdit(){}
 template <class T>
 void nimbus::cloudEdit<T>::remover(const PointCloudConstPtr blob, 
                     int width, int height, float perW, float perH,
-                    pcl::PointCloud<T> &res){
+                    PointCloud &res){
     int hLower = (height*perH)/2;
     int hUpper = (height - hLower);
     int wLower = (width*perW)/2;
@@ -47,13 +47,13 @@ void nimbus::cloudEdit<T>::remover(const PointCloudConstPtr blob,
 }
 
 template <class T>
-void nimbus::cloudEdit<T>::zRemover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+void nimbus::cloudEdit<T>::zRemover(const PointCloudConstPtr blob,
                     float maxDis, float minDis,
-                    pcl::PointCloud<pcl::PointXYZI> &res){
+                    PointCloud &res){
     if(blob->points.empty())
         return;
     pcl::PointXYZI tempPoints;
-    for(int i = 0; i < blob->size(); i++){
+    for(int i = 0; i < blob->points.size(); i++){
         if(maxDis > blob->points[i].z > minDis){
             tempPoints.x = blob->points[i].x;
             tempPoints.y = blob->points[i].y;
@@ -64,4 +64,30 @@ void nimbus::cloudEdit<T>::zRemover(const pcl::PointCloud<pcl::PointXYZI>::Const
     }
     res.width = res.points.size();
     res.height = 1;
+}
+
+template <class T>
+double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr &cloud){
+    double res = 0.0;
+    int _points = 0;
+    int nres;
+    std::vector<int> indices(2);
+    std::vector<float> sqr_distance(2);
+    pcl::search::KdTree<T> tree;
+    tree.setInputCloud(cloud);
+    
+    for(std::size_t i = 0; i < cloud->points.size(); ++i){
+        if(! std::isfinite(cloud->points[i].x)){
+            continue;
+        }
+        nres = tree.nearestKSearch(i, 2, indices, sqr_distance);
+        if(nres == 2){
+            res += sqrt(sqr_distance[1]);
+            ++_points;
+        }
+    }
+    if(_points != 0){
+        res /= _points;
+    }
+    return res;
 }
