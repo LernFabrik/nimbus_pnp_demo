@@ -7,9 +7,9 @@ template <class T>
 nimbus::cloudEdit<T>::~cloudEdit(){}
 
 template <class T>
-void nimbus::cloudEdit<T>::remover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob, 
+void nimbus::cloudEdit<T>::remover(const PointCloudConstPtr blob, 
                     int width, int height, float perW, float perH,
-                    pcl::PointCloud<pcl::PointXYZI> &res){
+                    pcl::PointCloud<T> &res){
     int hLower = (height*perH)/2;
     int hUpper = (height - hLower);
     int wLower = (width*perW)/2;
@@ -33,7 +33,7 @@ void nimbus::cloudEdit<T>::remover(const pcl::PointCloud<pcl::PointXYZI>::ConstP
         }
         if((i > hLower & i < hUpper)){
             for(int i = 0; i < tempX.size(); i++){
-                pcl::PointXYZI temP;
+                T temP;
                 temP.x = tempX[i];
                 temP.y = tempY[i];
                 temP.z = tempZ[i];
@@ -42,4 +42,26 @@ void nimbus::cloudEdit<T>::remover(const pcl::PointCloud<pcl::PointXYZI>::ConstP
             }
         }
     }
+    res.width = res.points.size();
+    res.height = 1;
+}
+
+template <class T>
+void nimbus::cloudEdit<T>::zRemover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+                    float maxDis, float minDis,
+                    pcl::PointCloud<pcl::PointXYZI> &res){
+    if(blob->points.empty())
+        return;
+    pcl::PointXYZI tempPoints;
+    for(int i = 0; i < blob->size(); i++){
+        if(maxDis > blob->points[i].z > minDis){
+            tempPoints.x = blob->points[i].x;
+            tempPoints.y = blob->points[i].y;
+            tempPoints.z = blob->points[i].z;
+            tempPoints.intensity = blob->points[i].intensity;
+            res.points.push_back(tempPoints);
+        } 
+    }
+    res.width = res.points.size();
+    res.height = 1;
 }

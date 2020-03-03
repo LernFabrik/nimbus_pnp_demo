@@ -12,11 +12,16 @@ namespace nimbus{
     {
     private:
         ros::NodeHandle _nh;
+        typedef pcl::PointCloud<T> PointCloud;
+        typedef boost::shared_ptr<const PointCloud > PointCloudConstPtr; 
     public:
         cloudEdit(ros::NodeHandle nh);
         ~cloudEdit();
-        void remover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob, 
+        void remover(const PointCloudConstPtr blob, 
                     int width, int height, float perW, float perH,
+                    pcl::PointCloud<T> &res);
+        void zRemover(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+                    float maxDis, float minDis,
                     pcl::PointCloud<pcl::PointXYZI> &res);
     };
 }

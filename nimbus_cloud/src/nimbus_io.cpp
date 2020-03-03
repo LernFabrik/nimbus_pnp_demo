@@ -56,7 +56,7 @@ int main(int argc, char** argv){
     cameraPose.transform.rotation.y = q.y();
     cameraPose.transform.rotation.z = q.z();
     cameraPose.transform.rotation.w = q.w();
-    
+    bool save = true;
     while (ros::ok())
     {
         if(newCloud){
@@ -67,15 +67,29 @@ int main(int argc, char** argv){
             else{
                 PointCloud::Ptr cloud(new PointCloud());
                 PointCloud::Ptr cloudE(new PointCloud());
+                 PointCloud::Ptr cloudZ(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
-                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.7, 0.6, *cloudE);
-                cloudE->header.frame_id= "Mcamera";
-                pcl_conversions::toPCL(ros::Time::now(), cloudE->header.stamp);
-                pub.publish(cloudE);
+                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.75, 0.65, *cloudE);
+                float addZ = 0;
+                float counter = 0;
+                /*
+                BOOST_FOREACH (const pcl::PointXYZI& pt, cloudE->points){
+                    ROS_INFO("Monitore Z: %f\n", pt.z);
+                    //addZ += pt.z;
+                    //counter ++;
+                }
+                //ROS_INFO("Mean Distance: %f\n", (float)(addZ/counter));*/
+                cloud_edit.zRemover(cloudE, 0.85, 0.6, *cloudZ);
+                if(save == true){
+                    pcl::io::savePCDFile("lwCube.pcd", *cloudZ);
+                    save == false;
+                }
+                cloudZ->header.frame_id= "Mcamera";
+                pcl_conversions::toPCL(ros::Time::now(), cloudZ->header.stamp);
+                pub.publish(cloudZ);
                 cloud.reset();
             }
             // cloud_blob.points.clear()
-
         }
         cameraPose.header.stamp = ros::Time::now();
         staticTrans.sendTransform(cameraPose);
