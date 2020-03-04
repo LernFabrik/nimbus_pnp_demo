@@ -62,3 +62,6 @@ target_link_libraries(cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
 #############################################################################
 add_executable(nimbus_io_node src/nimbus_io.cpp)
 target_link_libraries(nimbus_io_node cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
+
+add_executable(nimbus_detector_node src/main.cpp)
+target_link_libraries(nimbus_detector_node cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
