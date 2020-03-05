@@ -18,6 +18,7 @@
 #include <nimbus_cloud/cloud_edit.h>
 #include <nimbus_cloud/cloud_features.h>
 #include <nimbus_cloud/cloud_keypoints.h>
+#include <nimbus_cloud/cloud_recognition.h>
 
 double scene_ns_;
 double model_ns_;
@@ -73,6 +74,7 @@ int main(int argc, char** argv){
     cloudMean<pcl::PointXYZI> cMean(nh);
     nimbus::cloudFeatures<pcl::PointXYZI, pcl::Normal> cFeature(nh);
     nimbus::cloudKeypoints<pcl::PointXYZI> cKeypoints(nh);
+    nimbus::cloudRecognition cRecognition(nh);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "detection";
@@ -94,7 +96,6 @@ int main(int argc, char** argv){
 
     while (ros::ok())
     {
-        ROS_ERROR("Starting");
         pcl::PointCloud<pcl::Normal>::Ptr scene_norm (new pcl::PointCloud<pcl::Normal>());
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
@@ -109,34 +110,15 @@ int main(int argc, char** argv){
             scene->is_dense = false;
             model->is_dense = false;
             
-            cFeature.cloudNormalEstimationOMP(scene, scene_ns_,*scene_norm);
-            cFeature.cloudNormalEstimationOMP(model, model_ns_, *model_norm);
-            cKeypoints.cloudUniformSampling(scene, scene_ks_, scene_keypoint);
+            cFeature.cloudNormalEstimationOMP(scene, 0.01,*scene_norm);
+            cFeature.cloudNormalEstimationOMP(model, 0.01, *model_norm);
+            cKeypoints.cloudUniformSampling(scene, 0.01, scene_keypoint);
             cKeypoints.cloudUniformSampling(model, model_ks_, model_keypoint);
-            cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, scene_ds_, scene_descriptor);
-            cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, model_ds_, model_descriptor);
-            ROS_ERROR("Size of model decriptor: %d", model_descriptor->points.size());
-             ROS_ERROR("Size of model decriptor: %d", scene_descriptor->size());
+            cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, 0.01, scene_descriptor);
+            cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, 0.01, model_descriptor);
 
             pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
-            pcl::KdTreeFLANN<pcl::SHOT352> match_search;
-            match_search.setInputCloud(model_descriptor);
-            for(std::size_t i = 0; i < scene_descriptor->size(); ++i){
-                std::vector<int> neigh_indices(1);
-                std::vector<float> neigh_sqrt_distance(1);
-
-                if(! std::isfinite(scene_descriptor->at (i).descriptor[0])){
-                    ROS_ERROR("Scene descriptor at: %d --> %f", i, scene_descriptor->at (i).descriptor[0]);
-                    continue;
-                }
-                int found_neighs = match_search.nearestKSearch(scene_descriptor->at (i), 1, neigh_indices, neigh_sqrt_distance);
-                ROS_ERROR("Neighbooring sqrt dist: %f", neigh_sqrt_distance[0]);
-                if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.25f){
-                    pcl::Correspondence corr(neigh_indices[0], static_cast<int> (i), neigh_sqrt_distance[0]);
-                    model_scene_corr->push_back(corr);
-                }
-            }
-            ROS_ERROR("Found Correnspondence is: %d", (int)model_scene_corr->size());
+            cRecognition.cloudCorrespondence(model_descriptor, scene_descriptor, model_scene_corr);
         }
         scene_keypoint->header.frame_id= "detection";
         pcl_conversions::toPCL(ros::Time::now(), scene_keypoint->header.stamp);
