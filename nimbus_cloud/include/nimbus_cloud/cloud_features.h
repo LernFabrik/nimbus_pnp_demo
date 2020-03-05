@@ -11,6 +11,7 @@
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/shot_omp.h>
+#include <pcl/features/board.h>
 
 #include <nimbus_cloud/cloud_edit.h>
 
@@ -64,6 +65,12 @@ namespace nimbus{
                                         const PointCloudConstPtr blob,
                                         double sr,
                                         pcl::PointCloud<pcl::SHOT352>::Ptr res);
+            
+            void cloudBoardLocalRefeFrame(const PointCloudConstPtr keyPoints,
+                                        const NormalCloudConstPtr normalPoints, 
+                                        const PointCloudConstPtr blob,
+                                        double sr,
+                                        pcl::PointCloud<pcl::ReferenceFrame>::Ptr res);
 
             /** ToDo:
              * 1. Normal estimation with cloud indices.
@@ -124,6 +131,22 @@ void nimbus::cloudFeatures<PointType, NormalType>::cloudSHOTEstimationOMP(const 
     descriptor.setInputNormals(normalPoints);
     descriptor.setSearchSurface(blob);
     descriptor.compute(*res);
+}
+
+template <class PointType, class NormalType>
+void nimbus::cloudFeatures<PointType, NormalType>::cloudBoardLocalRefeFrame(const PointCloudConstPtr keyPoints,
+                                                                        const NormalCloudConstPtr normalPoints, 
+                                                                        const PointCloudConstPtr blob,
+                                                                        double sr,
+                                                                        pcl::PointCloud<pcl::ReferenceFrame>::Ptr res)
+{
+    pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
+    rf_est.setFindHoles(true);
+    rf_est.setRadiusSearch(sr);
+    rf_est.setInputCloud(keyPoints);
+    rf_est.setInputNormals(normalPoints);
+    rf_est.setSearchSurface(blob);
+    rf_est.compute(*res);
 }
 
 #endif

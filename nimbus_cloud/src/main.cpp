@@ -93,6 +93,13 @@ int main(int argc, char** argv){
     pcl::PointCloud<pcl::PointXYZI>::Ptr model_keypoint (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::Normal>::Ptr model_norm (new pcl::PointCloud<pcl::Normal>());
     pcl::PointCloud<pcl::SHOT352>::Ptr model_descriptor (new pcl::PointCloud<pcl::SHOT352>());
+    pcl::PointCloud<pcl::ReferenceFrame>::Ptr model_ref (new pcl::PointCloud<pcl::ReferenceFrame>());
+
+    model->is_dense = false;
+    cFeature.cloudNormalEstimationOMP(model, 0.01, *model_norm);
+    cKeypoints.cloudUniformSampling(model, model_ks_, model_keypoint);
+    cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, 0.01, model_descriptor);
+    cFeature.cloudBoardLocalRefeFrame(model_keypoint, model_norm, model, 0.015, model_ref);
 
     while (ros::ok())
     {
@@ -101,6 +108,8 @@ int main(int argc, char** argv){
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene_keypoint (new pcl::PointCloud<pcl::PointXYZI>());
         pcl::PointCloud<pcl::SHOT352>::Ptr scene_descriptor (new pcl::PointCloud<pcl::SHOT352>());
+        pcl::PointCloud<pcl::ReferenceFrame>::Ptr scene_ref (new pcl::PointCloud<pcl::ReferenceFrame>());
+        pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
         if(newCloud && cMean.cloudQueue.size() < 2){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
@@ -108,17 +117,45 @@ int main(int argc, char** argv){
             cMean.meanFilter(*scene_blob, blob.width, blob.height);
             cFeature.remover(scene_blob, blob.width, blob.height, 0.7, 0.6, *scene);
             scene->is_dense = false;
-            model->is_dense = false;
             
             cFeature.cloudNormalEstimationOMP(scene, 0.01,*scene_norm);
-            cFeature.cloudNormalEstimationOMP(model, 0.01, *model_norm);
             cKeypoints.cloudUniformSampling(scene, 0.01, scene_keypoint);
-            cKeypoints.cloudUniformSampling(model, model_ks_, model_keypoint);
             cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, 0.01, scene_descriptor);
-            cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, 0.01, model_descriptor);
 
-            pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
             cRecognition.cloudCorrespondence(model_descriptor, scene_descriptor, model_scene_corr);
+
+            // Clustering
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
+            std::vector<pcl::Correspondences> clustered_corrs;
+            cFeature.cloudBoardLocalRefeFrame(model_keypoint, model_norm, model, 0.015, model_ref);
+
+            pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clustering;
+            clustering.setHoughBinSize(0.01f);
+            clustering.setHoughThreshold(5.0f);
+            clustering.setUseInterpolation(true);
+            clustering.setUseDistanceWeight(false);
+
+            clustering.setInputCloud(model_keypoint);
+            clustering.setInputRf(model_ref);
+            clustering.setSceneCloud(scene_keypoint);
+            clustering.setSceneRf(scene_ref);
+            clustering.setModelSceneCorrespondences(model_scene_corr);
+            clustering.recognize(rototranslations, clustered_corrs);
+
+            std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+            for(std::size_t i = 0; i < rototranslations.size(); ++i){
+                std::cout << "\n  Instance " << i+1 << ":" << std::endl;
+                std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
+
+                Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0,0);
+                Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+                printf ("\n");
+                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+                printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+                printf ("\n");
+                printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+            }
         }
         scene_keypoint->header.frame_id= "detection";
         pcl_conversions::toPCL(ros::Time::now(), scene_keypoint->header.stamp);
@@ -126,6 +163,13 @@ int main(int argc, char** argv){
         cameraPose.header.stamp = ros::Time::now();
         staticTrans.sendTransform(cameraPose);
         ros::spinOnce();
+
+        scene_norm.reset();
+        scene.reset();
+        scene_blob.reset();
+        scene_keypoint.reset();
+        scene_descriptor.reset();
+        model_scene_corr.reset();
     }
     
     ros::spin();
