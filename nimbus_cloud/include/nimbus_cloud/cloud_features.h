@@ -40,6 +40,7 @@ namespace nimbus{
              * @param output normal cloud
             */
             void cloudNormalEstimation(const PointCloudConstPtr blob,
+                                        double sr,
                                         NormalCloudPtr res);
             /** 
              * @brief Kd Tree Search method
@@ -48,6 +49,7 @@ namespace nimbus{
              * @param output normal cloud
             */
             void cloudNormalEstimationOMP(const PointCloudConstPtr blob,
+                                        double sr,
                                         pcl::PointCloud<NormalType> &res);
             
             /** 
@@ -60,6 +62,7 @@ namespace nimbus{
             void cloudSHOTEstimationOMP(const PointCloudConstPtr keyPoints,
                                         const NormalCloudConstPtr normalPoints, 
                                         const PointCloudConstPtr blob,
+                                        double sr,
                                         pcl::PointCloud<pcl::SHOT352>::Ptr res);
 
             /** ToDo:
@@ -76,41 +79,47 @@ nimbus::cloudFeatures<PointType, NormalType>::~cloudFeatures(){}
 
 template <class PointType, class NormalType>
 void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimation(const PointCloudConstPtr blob,
-                                        NormalCloudPtr res)
+                                                                        double sr,
+                                                                        NormalCloudPtr res)
 {
     pcl::NormalEstimation<PointType, NormalType> ne;
     ne.setInputCloud(blob);
     typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>());
     ne.setSearchMethod(tree);
-    double searchRadius = this->computeCloudResolution(blob);
-    ne.setRadiusSearch(searchRadius);
+    // double searchRadius = this->computeCloudResolution(blob);
+    // sr *= searchRadius;
+    ne.setRadiusSearch(sr);
     ne.compute(*res);
 }
 
 template <class PointType, class NormalType>
 void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimationOMP(const PointCloudConstPtr blob,
-                                        pcl::PointCloud<NormalType> &res)
+                                                                            double sr,
+                                                                            pcl::PointCloud<NormalType> &res)
 {
     pcl::NormalEstimationOMP<PointType, NormalType> ne;
     ne.setInputCloud(blob);
     typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>());
     ne.setSearchMethod(tree);
-    double searchRadius = this->computeCloudResolution(blob);
-    ne.setRadiusSearch(searchRadius);
+    // double searchRadius = this->computeCloudResolution(blob);
+    // sr *= searchRadius;
+    ne.setRadiusSearch(sr);
     ne.compute(res);
 }
 
 template <class PointType, class NormalType>
 void nimbus::cloudFeatures<PointType, NormalType>::cloudSHOTEstimationOMP(const PointCloudConstPtr keyPoints,
-                                        const NormalCloudConstPtr normalPoints, 
-                                        const PointCloudConstPtr blob,
-                                        pcl::PointCloud<pcl::SHOT352>::Ptr res)
+                                                                        const NormalCloudConstPtr normalPoints, 
+                                                                        const PointCloudConstPtr blob,
+                                                                        double sr,
+                                                                        pcl::PointCloud<pcl::SHOT352>::Ptr res)
 {
     pcl::SHOTEstimationOMP<PointType, NormalType, pcl::SHOT352> descriptor;
     // double searchRadius = cEdit.computeCloudResolution(blob);
     descriptor.setNumberOfThreads(4);
-    double searchRadius = this->computeCloudResolution(blob);
-    descriptor.setRadiusSearch(searchRadius);
+    // double searchRadius = this->computeCloudResolution(blob);
+    // sr *= searchRadius;
+    descriptor.setRadiusSearch(sr);
     descriptor.setInputCloud(keyPoints);
     descriptor.setInputNormals(normalPoints);
     descriptor.setSearchSurface(blob);

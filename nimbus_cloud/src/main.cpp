@@ -11,11 +11,23 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <dynamic_reconfigure/server.h>
+#include <nimbus_cloud/searchRadiusConfig.h>
 
 #include <nimbus_cloud/cloud_mean.h>
 #include <nimbus_cloud/cloud_edit.h>
 #include <nimbus_cloud/cloud_features.h>
 #include <nimbus_cloud/cloud_keypoints.h>
+
+double scene_ns_;
+double model_ns_;
+double scene_ks_;
+double model_ks_;
+double scene_ds_;
+double model_ds_;
+double rf_rad_;
+double cg_size_;
+double cg_thresh_;
 
 typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
 PointCloud blob;
@@ -29,12 +41,30 @@ void callback(const PointCloud::ConstPtr& msg){
     newCloud = true;
 }
 
+void dynamicCallback(nimbus_cloud::searchRadiusConfig &config, uint32_t level){
+    scene_ns_ = config.scene_ns_;
+    model_ns_ = config.model_ns_;
+    scene_ks_ = config.scene_ks_;
+    model_ks_ = config.model_ks_;
+    scene_ds_ = config.scene_ds_;
+    model_ds_ = config.model_ds_;
+    rf_rad_ = config.rf_rad_;
+    cg_size_ = config.cg_size_;
+    cg_thresh_ = config.cg_thresh_;
+}
+
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_node");
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
     ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
+
+    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> dServer;
+    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig>::CallbackType f;
+    f = boost::bind(&dynamicCallback, _1, _2);
+    dServer.setCallback(f);
+
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
@@ -79,12 +109,12 @@ int main(int argc, char** argv){
             scene->is_dense = false;
             model->is_dense = false;
             
-            cFeature.cloudNormalEstimationOMP(scene, *scene_norm);
-            cFeature.cloudNormalEstimationOMP(model, *model_norm);
-            cKeypoints.cloudUniformSampling(scene, scene_keypoint);
-            cKeypoints.cloudUniformSampling(model, model_keypoint);
-            cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, scene_descriptor);
-            cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, model_descriptor);
+            cFeature.cloudNormalEstimationOMP(scene, scene_ns_,*scene_norm);
+            cFeature.cloudNormalEstimationOMP(model, model_ns_, *model_norm);
+            cKeypoints.cloudUniformSampling(scene, scene_ks_, scene_keypoint);
+            cKeypoints.cloudUniformSampling(model, model_ks_, model_keypoint);
+            cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, scene_ds_, scene_descriptor);
+            cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, model_ds_, model_descriptor);
             ROS_ERROR("Size of model decriptor: %d", model_descriptor->points.size());
              ROS_ERROR("Size of model decriptor: %d", scene_descriptor->size());
 

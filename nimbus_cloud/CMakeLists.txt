@@ -24,6 +24,9 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 #find_package(PCL 1.8 REQUIRED)
 
+generate_dynamic_reconfigure_options(
+  cfg/searchRadius.cfg
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -31,6 +34,8 @@ catkin_package(
   CATKIN_DEPENDS geometry_msgs pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs tf2 tf2_geometry_msgs
   DEPENDS Boost EIGEN3 #PCL
 )
+
+
 
 ###########
 ## Build ##
@@ -65,3 +70,4 @@ target_link_libraries(nimbus_io_node cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUD
 
 add_executable(nimbus_detector_node src/main.cpp)
 target_link_libraries(nimbus_detector_node cloud_edit ${catkin_LIBRARIES} ${PCL_INCLUDE_DIRS})
+add_dependencies(nimbus_detector_node ${PROJECT_NAME}_gencfg)

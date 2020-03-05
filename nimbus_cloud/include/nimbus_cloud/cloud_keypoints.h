@@ -33,7 +33,7 @@ namespace nimbus{
              * @param Input Cloud
              * @param Output keypoint cloud
             */
-           void cloudUniformSampling(const PointCloudConstPtr blob, PointCloudPtr res);
+           void cloudUniformSampling(const PointCloudConstPtr blob, double sr, PointCloudPtr res);
             
     };
 }
@@ -43,11 +43,12 @@ template <class PointInType>
 nimbus::cloudKeypoints<PointInType>::~cloudKeypoints(){}
 
 template <class PointInType>
-void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudConstPtr blob, PointCloudPtr res){
+void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudConstPtr blob, double sr, PointCloudPtr res){
     pcl::UniformSampling<PointInType> uniSampling;
-    double searchRadius = this->computeCloudResolution(blob);
+    // double searchRadius = this->computeCloudResolution(blob);
+    // sr *= searchRadius;
     uniSampling.setInputCloud(blob);
-    uniSampling.setRadiusSearch(searchRadius);
+    uniSampling.setRadiusSearch(sr);
     uniSampling.filter(*res);
 }
 
