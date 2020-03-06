@@ -9,9 +9,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/correspondence.h>
-#include <pcl/recognition/cg/hough_3d.h>
-#include <pcl/recognition/cg/geometric_consistency.h>
-#include <pcl/common/transforms.h>
+
 
 
 /** 

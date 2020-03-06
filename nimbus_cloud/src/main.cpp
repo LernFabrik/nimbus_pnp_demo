@@ -6,7 +6,13 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+#include <pcl/surface/mls.h>
 #include <pcl/correspondence.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/common/transforms.h>
+#include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/recognition/cg/geometric_consistency.h>
 
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -69,7 +75,7 @@ int main(int argc, char** argv){
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/wCube.pcd", *model);
+    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
 
     cloudMean<pcl::PointXYZI> cMean(nh);
     nimbus::cloudFeatures<pcl::PointXYZI, pcl::Normal> cFeature(nh);
@@ -110,6 +116,7 @@ int main(int argc, char** argv){
         pcl::PointCloud<pcl::SHOT352>::Ptr scene_descriptor (new pcl::PointCloud<pcl::SHOT352>());
         pcl::PointCloud<pcl::ReferenceFrame>::Ptr scene_ref (new pcl::PointCloud<pcl::ReferenceFrame>());
         pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
+
         if(newCloud && cMean.cloudQueue.size() < 2){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
@@ -123,29 +130,35 @@ int main(int argc, char** argv){
             cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, 0.01, scene_descriptor);
 
             cRecognition.cloudCorrespondence(model_descriptor, scene_descriptor, model_scene_corr);
+            std::cout << "Model scene Correspondence found: " << model_scene_corr->size() << std::endl;
 
             // Clustering
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
             std::vector<pcl::Correspondences> clustered_corrs;
-            cFeature.cloudBoardLocalRefeFrame(model_keypoint, model_norm, model, 0.015, model_ref);
+            cFeature.cloudBoardLocalRefeFrame(scene_keypoint, scene_norm, scene, 0.015, scene_ref);
 
-            pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clustering;
-            clustering.setHoughBinSize(0.01f);
-            clustering.setHoughThreshold(5.0f);
-            clustering.setUseInterpolation(true);
-            clustering.setUseDistanceWeight(false);
+            typedef pcl::PointXYZI PointTp;
+            typedef pcl::ReferenceFrame RefereFm;
+            pcl::Hough3DGrouping< PointTp, PointTp, RefereFm, RefereFm> clusterer;
+            clusterer.setHoughBinSize (0.017);
+            clusterer.setHoughThreshold (3.5);
+            clusterer.setUseInterpolation (true);
+            clusterer.setUseDistanceWeight (false);
 
-            clustering.setInputCloud(model_keypoint);
-            clustering.setInputRf(model_ref);
-            clustering.setSceneCloud(scene_keypoint);
-            clustering.setSceneRf(scene_ref);
-            clustering.setModelSceneCorrespondences(model_scene_corr);
-            clustering.recognize(rototranslations, clustered_corrs);
+            clusterer.setInputCloud (model_keypoint);
+            clusterer.setInputRf (model_ref);
+            clusterer.setSceneCloud (scene_keypoint);
+            clusterer.setSceneRf (scene_ref);
+            clusterer.setModelSceneCorrespondences (model_scene_corr);
+            //std::vector<double> scale = clusterer.getCharacteristicScales();
+
+            clusterer.recognize (rototranslations, clustered_corrs);
 
             std::cout << "Model instances found: " << rototranslations.size () << std::endl;
             for(std::size_t i = 0; i < rototranslations.size(); ++i){
                 std::cout << "\n  Instance " << i+1 << ":" << std::endl;
                 std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
+                //std::cout << "        Scale: " << scale[i] << std::endl;
 
                 Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0,0);
                 Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
@@ -156,20 +169,13 @@ int main(int argc, char** argv){
                 printf ("\n");
                 printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
             }
+            model->header.frame_id= "detection";
+            pcl_conversions::toPCL(ros::Time::now(), model->header.stamp);
+            pub.publish(model);
         }
-        scene_keypoint->header.frame_id= "detection";
-        pcl_conversions::toPCL(ros::Time::now(), scene_keypoint->header.stamp);
-        pub.publish(scene_keypoint);
         cameraPose.header.stamp = ros::Time::now();
         staticTrans.sendTransform(cameraPose);
         ros::spinOnce();
-
-        scene_norm.reset();
-        scene.reset();
-        scene_blob.reset();
-        scene_keypoint.reset();
-        scene_descriptor.reset();
-        model_scene_corr.reset();
     }
     
     ros::spin();

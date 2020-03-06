@@ -69,7 +69,7 @@ int main(int argc, char** argv){
                 PointCloud::Ptr cloudE(new PointCloud());
                  PointCloud::Ptr cloudZ(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
-                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.75, 0.65, *cloudE);
+                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.7, 0.6, *cloudE);
                 float addZ = 0;
                 float counter = 0;
                 /*
@@ -81,7 +81,7 @@ int main(int argc, char** argv){
                 //ROS_INFO("Mean Distance: %f\n", (float)(addZ/counter));*/
                 cloud_edit.zRemover(cloudE, 0.85, 0.6, *cloudZ);
                 if(save == true){
-                    pcl::io::savePCDFile("lwCube.pcd", *cloudZ);
+                    pcl::io::savePCDFile("model1.pcd", *cloudZ);
                     save == false;
                 }
                 cloudZ->header.frame_id= "Mcamera";
