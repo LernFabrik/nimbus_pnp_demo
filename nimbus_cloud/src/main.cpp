@@ -16,6 +16,7 @@
 
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <dynamic_reconfigure/server.h>
 #include <nimbus_cloud/searchRadiusConfig.h>
@@ -162,6 +163,12 @@ int main(int argc, char** argv){
 
                 Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0,0);
                 Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+                tf2::Matrix3x3 mat(rotation (0,0), rotation (0,1), rotation (0,2),
+                                   rotation (1,0), rotation (1,1), rotation (1,2),
+                                   rotation (2,0), rotation (2,1), rotation (2,2));
+                tf2Scalar roll, pitch, yaw;
+                mat.getEulerYPR(yaw, pitch, roll);
+                ROS_ERROR("Roll: %f, Pitch: %f, Yaw: %f", roll, pitch, yaw);
                 printf ("\n");
                 printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
                 printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));

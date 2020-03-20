@@ -35,6 +35,8 @@ namespace nimbus{
             void cloudCorrespondence(const pcl::PointCloud<pcl::SHOT352>::ConstPtr model_descriptor, 
                                     const pcl::PointCloud<pcl::SHOT352>::ConstPtr scene_descriptor, 
                                     correspondencesPtr corr);
+                                
+            void cloudHough3D();
 
     };
 }
