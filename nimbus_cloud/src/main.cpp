@@ -74,9 +74,11 @@ int main(int argc, char** argv){
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
 
     cloudMean<pcl::PointXYZI> cMean(nh);
-    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh, 0.01, 0.01, 0.01);
+    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh, 0.01, 0.01, 0.01, 0.015);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "detection";
@@ -97,9 +99,6 @@ int main(int argc, char** argv){
 
     while (ros::ok())
     {
-        pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
-
         if(newCloud && cMean.cloudQueue.size() < 2){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
@@ -133,9 +132,11 @@ int main(int argc, char** argv){
                 printf ("\n");
                 printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
             }
-            model->header.frame_id= "detection";
-            pcl_conversions::toPCL(ros::Time::now(), model->header.stamp);
-            pub.publish(model);
+            scene->header.frame_id= "detection";
+            pcl_conversions::toPCL(ros::Time::now(), scene->header.stamp);
+            pub.publish(scene);
+            scene.reset(new pcl::PointCloud<pcl::PointXYZI>());
+            scene_blob.reset(new pcl::PointCloud<pcl::PointXYZI>());
         }
         cameraPose.header.stamp = ros::Time::now();
         staticTrans.sendTransform(cameraPose);

@@ -84,7 +84,7 @@ void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimationOMP(cons
     // double searchRadius = this->computeCloudResolution(blob);
     // normal_sr *= searchRadius;
     ne.setRadiusSearch(normal_sr);
-    normalOut = new pcl::PointCloud<NormalType>();
+    normalOut.reset(new pcl::PointCloud<NormalType>());
     ne.compute(*normalOut);
 }
 
@@ -99,7 +99,7 @@ void nimbus::cloudFeatures<PointType, NormalType>::cloudSHOTEstimationOMP(const 
     descriptor.setInputCloud(this->keypointOut);
     descriptor.setInputNormals(normalOut);
     descriptor.setSearchSurface(blob);
-    shotOut = new pcl::PointCloud<pcl::SHOT352>();
+    shotOut.reset(new pcl::PointCloud<pcl::SHOT352>());
     descriptor.compute(*shotOut);
 }
 
@@ -112,7 +112,7 @@ void nimbus::cloudFeatures<PointType, NormalType>::cloudBoardLocalRefeFrame(cons
     rf_est.setInputCloud(this->keypointOut);
     rf_est.setInputNormals(normalOut);
     rf_est.setSearchSurface(blob);
-    referenceOut = new pcl::PointCloud<pcl::ReferenceFrame>();
+    referenceOut.reset(new pcl::PointCloud<pcl::ReferenceFrame>());
     rf_est.compute(*referenceOut);
 }
 

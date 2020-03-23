@@ -9,11 +9,13 @@ template <class PointType, class NormalType>
 nimbus::cloudRecognition<PointType, NormalType>::cloudRecognition(ros::NodeHandle nh, 
                                            double normalSR, 
                                            double keypointSR, 
-                                           double shotSR) : cloudFeatures<PointType, NormalType>(nh), _nh(nh)
+                                           double shotSR, 
+                                           double referenceSR) : cloudFeatures<PointType, NormalType>(nh), _nh(nh)
 {
     this->normal_sr = normalSR;
     this->keypoint_sr = keypointSR;
     this->shot_sr = shotSR;
+    this->reference_sr = referenceSR;
 }
 
 template <class PointType, class NormalType>
@@ -40,7 +42,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::cloudCorrespondence(const 
     this->cloudUniformSampling(blob);
     this->cloudSHOTEstimationOMP(blob);
     this->cloudBoardLocalRefeFrame(blob);
-    
+    model_scene_corr.reset(new pcl::Correspondences());
     pcl::KdTreeFLANN<pcl::SHOT352> match_search;
     match_search.setInputCloud(mData.descriptor);
     for(std::size_t i = 0; i < this->shotOut->size(); ++i){

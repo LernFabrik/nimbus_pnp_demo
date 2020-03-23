@@ -28,12 +28,11 @@ namespace nimbus{
     class cloudRecognition : public cloudFeatures<PointType, NormalType>{
         private:
             ros::NodeHandle _nh;
-            typedef pcl::CorrespondencesPtr correspondencesPtr;
         public:
             modelData mData;
-            typedef typename pcl::CorrespondencesPtr model_scene_corr;
+            pcl::CorrespondencesPtr model_scene_corr;
         public:
-            cloudRecognition(ros::NodeHandle nh, double normalSR, double keypointSR, double shotSR);
+            cloudRecognition(ros::NodeHandle nh, double normalSR, double keypointSR, double shotSR, double referenceSR);
             ~cloudRecognition();
             //Functions
             /** Model Constructor 

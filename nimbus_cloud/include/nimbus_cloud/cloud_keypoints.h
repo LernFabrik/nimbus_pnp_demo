@@ -52,7 +52,7 @@ void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudC
     // this->keypoint_sr *= searchRadius;
     uniSampling.setInputCloud(blob);
     uniSampling.setRadiusSearch(keypoint_sr);
-    keypointOut = new pcl::PointCloud<PointInType>();
+    keypointOut.reset(new pcl::PointCloud<PointInType>());
     uniSampling.filter(*keypointOut);
 }
 
