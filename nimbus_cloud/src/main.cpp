@@ -22,9 +22,6 @@
 #include <nimbus_cloud/searchRadiusConfig.h>
 
 #include <nimbus_cloud/cloud_mean.h>
-#include <nimbus_cloud/cloud_edit.h>
-#include <nimbus_cloud/cloud_features.h>
-#include <nimbus_cloud/cloud_keypoints.h>
 #include <nimbus_cloud/cloud_recognition.h>
 
 double scene_ns_;
@@ -79,9 +76,7 @@ int main(int argc, char** argv){
     pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
 
     cloudMean<pcl::PointXYZI> cMean(nh);
-    nimbus::cloudFeatures<pcl::PointXYZI, pcl::Normal> cFeature(nh);
-    nimbus::cloudKeypoints<pcl::PointXYZI> cKeypoints(nh);
-    nimbus::cloudRecognition cRecognition(nh);
+    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh, 0.01, 0.01, 0.01);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "detection";
@@ -97,64 +92,26 @@ int main(int argc, char** argv){
     cameraPose.transform.rotation.w = q.w();
     bool save = true;
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr model_keypoint (new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::PointCloud<pcl::Normal>::Ptr model_norm (new pcl::PointCloud<pcl::Normal>());
-    pcl::PointCloud<pcl::SHOT352>::Ptr model_descriptor (new pcl::PointCloud<pcl::SHOT352>());
-    pcl::PointCloud<pcl::ReferenceFrame>::Ptr model_ref (new pcl::PointCloud<pcl::ReferenceFrame>());
-
     model->is_dense = false;
-    cFeature.cloudNormalEstimationOMP(model, 0.01, *model_norm);
-    cKeypoints.cloudUniformSampling(model, model_ks_, model_keypoint);
-    cFeature.cloudSHOTEstimationOMP(model_keypoint, model_norm, model, 0.01, model_descriptor);
-    cFeature.cloudBoardLocalRefeFrame(model_keypoint, model_norm, model, 0.015, model_ref);
+    cRecog.modelConstruct(model);
 
     while (ros::ok())
     {
-        pcl::PointCloud<pcl::Normal>::Ptr scene_norm (new pcl::PointCloud<pcl::Normal>());
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
         pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::PointCloud<pcl::PointXYZI>::Ptr scene_keypoint (new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::PointCloud<pcl::SHOT352>::Ptr scene_descriptor (new pcl::PointCloud<pcl::SHOT352>());
-        pcl::PointCloud<pcl::ReferenceFrame>::Ptr scene_ref (new pcl::PointCloud<pcl::ReferenceFrame>());
-        pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
 
         if(newCloud && cMean.cloudQueue.size() < 2){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
         }else{
             cMean.meanFilter(*scene_blob, blob.width, blob.height);
-            cFeature.remover(scene_blob, blob.width, blob.height, 0.7, 0.6, *scene);
+            cRecog.remover(scene_blob, blob.width, blob.height, 0.7, 0.6, *scene);
             scene->is_dense = false;
             
-            cFeature.cloudNormalEstimationOMP(scene, 0.01,*scene_norm);
-            cKeypoints.cloudUniformSampling(scene, 0.01, scene_keypoint);
-            cFeature.cloudSHOTEstimationOMP(scene_keypoint, scene_norm, scene, 0.01, scene_descriptor);
-
-            cRecognition.cloudCorrespondence(model_descriptor, scene_descriptor, model_scene_corr);
-            std::cout << "Model scene Correspondence found: " << model_scene_corr->size() << std::endl;
-
             // Clustering
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
             std::vector<pcl::Correspondences> clustered_corrs;
-            cFeature.cloudBoardLocalRefeFrame(scene_keypoint, scene_norm, scene, 0.015, scene_ref);
-
-            typedef pcl::PointXYZI PointTp;
-            typedef pcl::ReferenceFrame RefereFm;
-            pcl::Hough3DGrouping< PointTp, PointTp, RefereFm, RefereFm> clusterer;
-            clusterer.setHoughBinSize (0.017);
-            clusterer.setHoughThreshold (3.5);
-            clusterer.setUseInterpolation (true);
-            clusterer.setUseDistanceWeight (false);
-
-            clusterer.setInputCloud (model_keypoint);
-            clusterer.setInputRf (model_ref);
-            clusterer.setSceneCloud (scene_keypoint);
-            clusterer.setSceneRf (scene_ref);
-            clusterer.setModelSceneCorrespondences (model_scene_corr);
-            //std::vector<double> scale = clusterer.getCharacteristicScales();
-
-            clusterer.recognize (rototranslations, clustered_corrs);
-
+            cRecog.cloudHough3D(scene, rototranslations, clustered_corrs);
             std::cout << "Model instances found: " << rototranslations.size () << std::endl;
             for(std::size_t i = 0; i < rototranslations.size(); ++i){
                 std::cout << "\n  Instance " << i+1 << ":" << std::endl;

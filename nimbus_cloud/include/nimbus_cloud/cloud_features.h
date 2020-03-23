@@ -14,6 +14,7 @@
 #include <pcl/features/board.h>
 
 #include <nimbus_cloud/cloud_edit.h>
+#include <nimbus_cloud/cloud_keypoints.h>
 
 /** 
  * http://www.pointclouds.org/documentation/tutorials/#features-tutorial
@@ -21,7 +22,7 @@
 */
 namespace nimbus{
     template <class PointType, class NormalType>
-    class cloudFeatures : public cloudEdit<PointType> {
+    class cloudFeatures : public cloudKeypoints<PointType> {
         private:
             ros::NodeHandle _nh;
             typedef pcl::PointCloud<PointType> PointCloud;
@@ -29,6 +30,14 @@ namespace nimbus{
             typedef pcl::PointCloud<NormalType> NormalCloud;
             typedef boost::shared_ptr<NormalCloud> NormalCloudPtr;
             typedef boost::shared_ptr<const NormalCloud> NormalCloudConstPtr;
+        
+        protected:
+            typename pcl::PointCloud<NormalType>::Ptr normalOut;
+            double normal_sr;
+            typename pcl::PointCloud<pcl::SHOT352>::Ptr shotOut;
+            double shot_sr;
+            typename pcl::PointCloud<pcl::ReferenceFrame>::Ptr referenceOut;
+            double reference_sr;
 
         public:
             cloudFeatures(ros::NodeHandle nh);
@@ -40,18 +49,7 @@ namespace nimbus{
              * @param input search radius
              * @param output normal cloud
             */
-            void cloudNormalEstimation(const PointCloudConstPtr blob,
-                                        double sr,
-                                        NormalCloudPtr res);
-            /** 
-             * @brief Kd Tree Search method
-             * @param input downsampled cloud
-             * @param input search radius
-             * @param output normal cloud
-            */
-            void cloudNormalEstimationOMP(const PointCloudConstPtr blob,
-                                        double sr,
-                                        pcl::PointCloud<NormalType> &res);
+            void cloudNormalEstimationOMP(const PointCloudConstPtr blob);
             
             /** 
              * @brief SHOT Estimation
@@ -60,17 +58,9 @@ namespace nimbus{
              * @param input Raw cloud for surface detection
              * @param output Discriptor of type pcl::SHOT352
             */
-            void cloudSHOTEstimationOMP(const PointCloudConstPtr keyPoints,
-                                        const NormalCloudConstPtr normalPoints, 
-                                        const PointCloudConstPtr blob,
-                                        double sr,
-                                        pcl::PointCloud<pcl::SHOT352>::Ptr res);
+            void cloudSHOTEstimationOMP(const PointCloudConstPtr blob);
             
-            void cloudBoardLocalRefeFrame(const PointCloudConstPtr keyPoints,
-                                        const NormalCloudConstPtr normalPoints, 
-                                        const PointCloudConstPtr blob,
-                                        double sr,
-                                        pcl::PointCloud<pcl::ReferenceFrame>::Ptr res);
+            void cloudBoardLocalRefeFrame(const PointCloudConstPtr blob);
 
             /** ToDo:
              * 1. Normal estimation with cloud indices.
@@ -80,73 +70,50 @@ namespace nimbus{
     };
 }
 template <class PointType, class NormalType>
-nimbus::cloudFeatures<PointType, NormalType>::cloudFeatures(ros::NodeHandle nh):cloudEdit<PointType>(nh), _nh(nh){}
+nimbus::cloudFeatures<PointType, NormalType>::cloudFeatures(ros::NodeHandle nh):cloudKeypoints<PointType>(nh), _nh(nh){}
 template <class PointType, class NormalType>
 nimbus::cloudFeatures<PointType, NormalType>::~cloudFeatures(){}
 
 template <class PointType, class NormalType>
-void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimation(const PointCloudConstPtr blob,
-                                                                        double sr,
-                                                                        NormalCloudPtr res)
-{
-    pcl::NormalEstimation<PointType, NormalType> ne;
-    ne.setInputCloud(blob);
-    typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>());
-    ne.setSearchMethod(tree);
-    // double searchRadius = this->computeCloudResolution(blob);
-    // sr *= searchRadius;
-    ne.setRadiusSearch(sr);
-    ne.compute(*res);
-}
-
-template <class PointType, class NormalType>
-void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimationOMP(const PointCloudConstPtr blob,
-                                                                            double sr,
-                                                                            pcl::PointCloud<NormalType> &res)
+void nimbus::cloudFeatures<PointType, NormalType>::cloudNormalEstimationOMP(const PointCloudConstPtr blob)
 {
     pcl::NormalEstimationOMP<PointType, NormalType> ne;
     ne.setInputCloud(blob);
     typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>());
     ne.setSearchMethod(tree);
     // double searchRadius = this->computeCloudResolution(blob);
-    // sr *= searchRadius;
-    ne.setRadiusSearch(sr);
-    ne.compute(res);
+    // normal_sr *= searchRadius;
+    ne.setRadiusSearch(normal_sr);
+    normalOut = new pcl::PointCloud<NormalType>();
+    ne.compute(*normalOut);
 }
 
 template <class PointType, class NormalType>
-void nimbus::cloudFeatures<PointType, NormalType>::cloudSHOTEstimationOMP(const PointCloudConstPtr keyPoints,
-                                                                        const NormalCloudConstPtr normalPoints, 
-                                                                        const PointCloudConstPtr blob,
-                                                                        double sr,
-                                                                        pcl::PointCloud<pcl::SHOT352>::Ptr res)
+void nimbus::cloudFeatures<PointType, NormalType>::cloudSHOTEstimationOMP(const PointCloudConstPtr blob)
 {
     pcl::SHOTEstimationOMP<PointType, NormalType, pcl::SHOT352> descriptor;
-    // double searchRadius = cEdit.computeCloudResolution(blob);
     descriptor.setNumberOfThreads(4);
     // double searchRadius = this->computeCloudResolution(blob);
-    // sr *= searchRadius;
-    descriptor.setRadiusSearch(sr);
-    descriptor.setInputCloud(keyPoints);
-    descriptor.setInputNormals(normalPoints);
+    // shot_sr *= searchRadius;
+    descriptor.setRadiusSearch(shot_sr);
+    descriptor.setInputCloud(this->keypointOut);
+    descriptor.setInputNormals(normalOut);
     descriptor.setSearchSurface(blob);
-    descriptor.compute(*res);
+    shotOut = new pcl::PointCloud<pcl::SHOT352>();
+    descriptor.compute(*shotOut);
 }
 
 template <class PointType, class NormalType>
-void nimbus::cloudFeatures<PointType, NormalType>::cloudBoardLocalRefeFrame(const PointCloudConstPtr keyPoints,
-                                                                        const NormalCloudConstPtr normalPoints, 
-                                                                        const PointCloudConstPtr blob,
-                                                                        double sr,
-                                                                        pcl::PointCloud<pcl::ReferenceFrame>::Ptr res)
+void nimbus::cloudFeatures<PointType, NormalType>::cloudBoardLocalRefeFrame(const PointCloudConstPtr blob)
 {
     pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
     rf_est.setFindHoles(true);
-    rf_est.setRadiusSearch(sr);
-    rf_est.setInputCloud(keyPoints);
-    rf_est.setInputNormals(normalPoints);
+    rf_est.setRadiusSearch(reference_sr);
+    rf_est.setInputCloud(this->keypointOut);
+    rf_est.setInputNormals(normalOut);
     rf_est.setSearchSurface(blob);
-    rf_est.compute(*res);
+    referenceOut = new pcl::PointCloud<pcl::ReferenceFrame>();
+    rf_est.compute(*referenceOut);
 }
 
 #endif
