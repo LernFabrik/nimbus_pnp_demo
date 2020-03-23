@@ -24,6 +24,9 @@ namespace nimbus{
             typedef pcl::PointCloud<PointInType> PointCloud;
             typedef boost::shared_ptr<PointCloud> PointCloudPtr;
             typedef boost::shared_ptr<const PointCloud> PointCloudConstPtr;
+        protected:
+            typename pcl::PointCloud<PointInType>::Ptr keypointOut;
+            double keypoint_sr;
         public:
             cloudKeypoints(ros::NodeHandle nh);
             ~cloudKeypoints();
@@ -33,7 +36,7 @@ namespace nimbus{
              * @param Input Cloud
              * @param Output keypoint cloud
             */
-           void cloudUniformSampling(const PointCloudConstPtr blob, double sr, PointCloudPtr res);
+           void cloudUniformSampling(const PointCloudConstPtr blob);
             
     };
 }
@@ -43,13 +46,14 @@ template <class PointInType>
 nimbus::cloudKeypoints<PointInType>::~cloudKeypoints(){}
 
 template <class PointInType>
-void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudConstPtr blob, double sr, PointCloudPtr res){
+void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudConstPtr blob){
     pcl::UniformSampling<PointInType> uniSampling;
     // double searchRadius = this->computeCloudResolution(blob);
-    // sr *= searchRadius;
+    // this->keypoint_sr *= searchRadius;
     uniSampling.setInputCloud(blob);
-    uniSampling.setRadiusSearch(sr);
-    uniSampling.filter(*res);
+    uniSampling.setRadiusSearch(keypoint_sr);
+    keypointOut.reset(new pcl::PointCloud<PointInType>());
+    uniSampling.filter(*keypointOut);
 }
 
 #endif
