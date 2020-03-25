@@ -43,6 +43,7 @@ void callback(const PointCloud::ConstPtr& msg){
     blob.height = msg->height;
     blob.header = msg->header;
     blob.points = msg->points;
+    blob.is_dense = msg->is_dense;
     newCloud = true;
 }
 

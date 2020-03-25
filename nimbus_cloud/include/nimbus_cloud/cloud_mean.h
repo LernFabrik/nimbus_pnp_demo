@@ -70,7 +70,7 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
             temPoint.x = addX[i] / mnCounter[i];
             temPoint.y = addY[i] / mnCounter[i];
             temPoint.z = addZ[i] / mnCounter[i];
-            temPoint.intensity = ampt[i] / mnCounter[i] * 0.1;
+            temPoint.intensity = ampt[i] / mnCounter[i];
         }
         res.points.push_back(temPoint);
     }

@@ -26,10 +26,12 @@ void callback(const PointCloud::ConstPtr& msg){
     //     points.z = tempC.point[i]z;
     //     points.intensity = tempC.point[i]intensity;
     // }
-    cloud_blob.width = msg->width;
-    cloud_blob.height = msg->height;
-    cloud_blob.header = msg->header;
-    cloud_blob.points = msg->points;
+    // cloud_blob.width = msg->width;
+    // cloud_blob.height = msg->height;
+    // cloud_blob.header = msg->header;
+    // cloud_blob.points = msg->points;
+    // cloud_blob.is_dense = msg->is_dense;
+    pcl::copyPointCloud(*msg, cloud_blob);
     newCloud = true;
 }
 
@@ -67,7 +69,7 @@ int main(int argc, char** argv){
             else{
                 PointCloud::Ptr cloud(new PointCloud());
                 PointCloud::Ptr cloudE(new PointCloud());
-                 PointCloud::Ptr cloudZ(new PointCloud());
+                PointCloud::Ptr cloudZ(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
                 cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.50, 0.86, *cloudE);
                 float addZ = 0;
@@ -79,7 +81,7 @@ int main(int argc, char** argv){
                     //counter ++;
                 }
                 //ROS_INFO("Mean Distance: %f\n", (float)(addZ/counter));*/
-                cloud_edit.zRemover(cloudE, 0.38, 0.34, *cloudZ);
+                cloud_edit.zRemover(cloudE, 0.83, 0.75, *cloudZ);
                 if(save == true){
                     pcl::io::savePCDFile("model1.pcd", *cloudZ);
                     save == false;
