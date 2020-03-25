@@ -27,6 +27,7 @@ find_package(PCL 1.8 REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/searchRadius.cfg
+  cfg/cloudEdit.cfg
 )
 
 catkin_package(

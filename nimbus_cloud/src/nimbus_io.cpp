@@ -10,41 +10,52 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <std_msgs/Bool.h>
 
 #include <nimbus_cloud/cloud_mean.h>
 #include <nimbus_cloud/cloud_edit.h>
+#include <nimbus_cloud/cloudEditConfig.h>
+#include <dynamic_reconfigure/server.h>
+
+double remove_w, remove_h, z_max, z_min;
+bool save = false;
 
 typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
 PointCloud cloud_blob;
 bool newCloud = false;
 void callback(const PointCloud::ConstPtr& msg){
-    // printf ("Cloud: width = %d, height = %d\n", msg->width, msg->height);
-    pcl::PointXYZI points;
-    // BOOST_FOREACH (const pcl::PointXYZI& pt, msg->points){
-    //     points.x = tempC.point[i]x;
-    //     points.y = tempC.point[i]y;
-    //     points.z = tempC.point[i]z;
-    //     points.intensity = tempC.point[i]intensity;
-    // }
-    // cloud_blob.width = msg->width;
-    // cloud_blob.height = msg->height;
-    // cloud_blob.header = msg->header;
-    // cloud_blob.points = msg->points;
-    // cloud_blob.is_dense = msg->is_dense;
     pcl::copyPointCloud(*msg, cloud_blob);
     newCloud = true;
 }
 
+void saveCallback(const std_msgs::Bool::ConstPtr &msg)
+{
+    save = msg->data;
+}
+
+void dynamicCallback(nimbus_cloud::cloudEditConfig &config, uint32_t data)
+{
+    remove_w = config.per_width;
+    remove_h = config.per_height;
+    z_max = config.z_max;
+    z_min = config.z_min;
+}
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_driver_io_node");
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
+    ros::Subscriber subSave = nh.subscribe<std_msgs::Bool>("save_pointcloud", 10, saveCallback);
     ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     cloudMean<pcl::PointXYZI> cE(nh);
     nimbus::cloudEdit <pcl::PointXYZI> cloud_edit(nh);
+
+    dynamic_reconfigure::Server<nimbus_cloud::cloudEditConfig> server;
+    dynamic_reconfigure::Server<nimbus_cloud::cloudEditConfig>::CallbackType f;
+    f = boost::bind(&dynamicCallback, _1, _2);
+    server.setCallback(f);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "Mcamera";
@@ -58,7 +69,7 @@ int main(int argc, char** argv){
     cameraPose.transform.rotation.y = q.y();
     cameraPose.transform.rotation.z = q.z();
     cameraPose.transform.rotation.w = q.w();
-    bool save = true;
+    
     while (ros::ok())
     {
         if(newCloud){
@@ -71,19 +82,15 @@ int main(int argc, char** argv){
                 PointCloud::Ptr cloudE(new PointCloud());
                 PointCloud::Ptr cloudZ(new PointCloud());
                 cE.meanFilter (*cloud, cloud_blob.width, cloud_blob.height);
-                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, 0.50, 0.86, *cloudE);
+                cloud_edit.remover(cloud, cloud_blob.width, cloud_blob.height, remove_w, remove_h, *cloudE);
                 float addZ = 0;
                 float counter = 0;
-                /*
-                BOOST_FOREACH (const pcl::PointXYZI& pt, cloudE->points){
-                    ROS_INFO("Monitore Z: %f\n", pt.z);
-                    //addZ += pt.z;
-                    //counter ++;
-                }
-                //ROS_INFO("Mean Distance: %f\n", (float)(addZ/counter));*/
-                cloud_edit.zRemover(cloudE, 0.83, 0.75, *cloudZ);
+                
+                cloud_edit.zRemover(cloudE, z_max, z_min, *cloudZ);
                 if(save == true){
+                    ROS_INFO("Saving");
                     pcl::io::savePCDFile("model1.pcd", *cloudZ);
+                    ROS_INFO("Saved");
                     save == false;
                 }
                 cloudZ->header.frame_id= "Mcamera";
