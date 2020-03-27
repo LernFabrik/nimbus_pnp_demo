@@ -64,7 +64,7 @@ add_dependencies(cloud_edit ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTE
 target_link_libraries(cloud_edit ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_library(cloud_recognition include/nimbus_cloud/impl/cloud_recognition.cpp)
-add_dependencies(cloud_recognition ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(cloud_recognition ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 target_link_libraries(cloud_recognition ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 

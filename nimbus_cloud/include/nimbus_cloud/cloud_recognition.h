@@ -31,8 +31,9 @@ namespace nimbus{
         public:
             modelData mData;
             pcl::CorrespondencesPtr model_scene_corr;
+            double cg_size_, cg_thresh_;
         public:
-            cloudRecognition(ros::NodeHandle nh, double normalSR, double keypointSR, double shotSR, double referenceSR);
+            cloudRecognition(ros::NodeHandle nh);
             ~cloudRecognition();
             //Functions
             /** Model Constructor 
@@ -40,6 +41,10 @@ namespace nimbus{
              * model metadata in the structure
             */
             void modelConstruct(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob);
+            /** Update Params
+             * This will run per loop and update the param/
+             * if Changed by dymanic param */
+            void updateParm(double ns, double ks, double ds, double rs, double cs, double ct); 
             /** 
              * Correspondence Matching
              * @brief It is RECOMMENDED to run "modelConstruct" before. 
