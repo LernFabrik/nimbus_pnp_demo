@@ -18,6 +18,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Transform.h>
 #include <dynamic_reconfigure/server.h>
 #include <nimbus_cloud/searchRadiusConfig.h>
 
@@ -53,6 +54,7 @@ int main(int argc, char** argv){
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
     ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
+    ros::Publisher pubPose = nh.advertise<geometry_msgs::Transform>("pose_detection", 5);
 
     dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> server;
     dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig>::CallbackType dF;
@@ -63,8 +65,6 @@ int main(int argc, char** argv){
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/box.pcd", *model);
-    ROS_INFO("Model Point size: %d", (int)model->points.size());
-    ros::Duration(5).sleep();
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
 
@@ -84,6 +84,7 @@ int main(int argc, char** argv){
     cameraPose.transform.rotation.z = q.z();
     cameraPose.transform.rotation.w = q.w();
 
+    geometry_msgs::Transform pose;
 
     while (ros::ok())
     {
@@ -115,14 +116,13 @@ int main(int argc, char** argv){
                                    rotation (2,0), rotation (2,1), rotation (2,2));
                 tf2Scalar roll, pitch, yaw;
                 mat.getEulerYPR(yaw, pitch, roll);
-                ROS_INFO("Roll: %f, Pitch: %f, Yaw: %f", roll, pitch, yaw);
-                printf ("\n");
-                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
-                printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
-                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
-                printf ("\n");
-                printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
-                ros::Duration(1).sleep();
+                tf2::Quaternion q;
+                q.setRPY(roll, pitch, yaw);
+                pose.translation.x = translation(0);
+                pose.translation.y = translation(1);
+                pose.translation.z = translation(2);
+                pose.rotation = tf2::toMsg(q);
+                pubPose.publish(pose);
             }
             scene->header.frame_id= "detection";
             pcl_conversions::toPCL(ros::Time::now(), scene->header.stamp);
