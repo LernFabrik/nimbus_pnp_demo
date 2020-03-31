@@ -59,7 +59,7 @@ add_definitions(${PCL_DEFINITIONS})
 ############################################################################
 ##################### !Add Library! ########################################
 ############################################################################
-add_library(cloud_edit src/cloud_edit.cpp)
+add_library(cloud_edit include/nimbus_cloud/impl/cloud_util.cpp)
 add_dependencies(cloud_edit ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cloud_edit ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 

@@ -1,5 +1,5 @@
-#ifndef _CLOUD_EDIT_H
-#define _CLOUD_EDIT_H
+#ifndef _CLOUD_UTIL_H
+#define _CLOUD_UTIL_H
 
 #include <ros/ros.h>
 #include <pcl_ros/point_cloud.h>

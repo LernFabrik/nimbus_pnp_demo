@@ -13,7 +13,6 @@
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/board.h>
 
-#include <nimbus_cloud/cloud_edit.h>
 #include <nimbus_cloud/cloud_keypoints.h>
 
 /** 

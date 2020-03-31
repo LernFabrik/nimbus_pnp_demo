@@ -13,7 +13,7 @@
 #include <std_msgs/Bool.h>
 
 #include <nimbus_cloud/cloud_mean.h>
-#include <nimbus_cloud/cloud_edit.h>
+#include <nimbus_cloud/cloud_util.h>
 #include <nimbus_cloud/cloudEditConfig.h>
 #include <dynamic_reconfigure/server.h>
 

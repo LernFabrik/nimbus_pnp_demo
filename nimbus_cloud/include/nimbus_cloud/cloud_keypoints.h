@@ -10,7 +10,7 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/filters/uniform_sampling.h>
 
-#include <nimbus_cloud/cloud_edit.h>
+#include <nimbus_cloud/cloud_util.h>
 
 /** 
  * http://docs.pointclouds.org/trunk/group__keypoints.html
@@ -37,6 +37,12 @@ namespace nimbus{
              * @param Output keypoint cloud
             */
            void cloudUniformSampling(const PointCloudConstPtr blob);
+
+           /** ISSKeypoint3D 
+            * Detects Intrinstic Shape Sigmature keypoint for a given point cloud
+            * Reconmmended to implement Filter before
+           */
+          void cloudISSKeypoints(const PointCloudConstPtr blob);
             
     };
 }
@@ -54,6 +60,12 @@ void nimbus::cloudKeypoints<PointInType>::cloudUniformSampling(const PointCloudC
     uniSampling.setRadiusSearch(keypoint_sr);
     keypointOut.reset(new pcl::PointCloud<PointInType>());
     uniSampling.filter(*keypointOut);
+}
+
+template <class PointInType>
+void nimbus::cloudKeypoints<PointInType>::cloudISSKeypoints(const PointCloudConstPtr blob)
+{
+
 }
 
 #endif

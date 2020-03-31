@@ -1,4 +1,4 @@
-#include <nimbus_cloud/cloud_edit.h>
+#include <nimbus_cloud/cloud_util.h>
 #include <ros/ros.h>
 
 template <class T>
@@ -82,6 +82,7 @@ double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr &cl
         }
         nres = tree.nearestKSearch(i, 2, indices, sqr_distance);
         if(nres == 2){
+            ROS_WARN("Square distance point 1: %f, 2: %f", sqr_distance[0], sqr_distance[1]);
             res += sqrt(sqr_distance[1]);
             ++_points;
         }
