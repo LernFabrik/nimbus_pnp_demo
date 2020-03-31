@@ -18,18 +18,16 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Transform.h>
 #include <dynamic_reconfigure/server.h>
 #include <nimbus_cloud/searchRadiusConfig.h>
 
 #include <nimbus_cloud/cloud_mean.h>
 #include <nimbus_cloud/cloud_recognition.h>
 
-double scene_ns_;
-double model_ns_;
-double scene_ks_;
-double model_ks_;
-double scene_ds_;
-double model_ds_;
+double _ns;
+double _ks;
+double _ds;
 double rf_rad_;
 double cg_size_;
 double cg_thresh_;
@@ -38,48 +36,40 @@ typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
 PointCloud blob;
 bool newCloud = false;
 void callback(const PointCloud::ConstPtr& msg){
-    pcl::PointXYZI points;
-    blob.width = msg->width;
-    blob.height = msg->height;
-    blob.header = msg->header;
-    blob.points = msg->points;
-    blob.is_dense = msg->is_dense;
+    pcl::copyPointCloud(*msg, blob);
     newCloud = true;
 }
 
 void dynamicCallback(nimbus_cloud::searchRadiusConfig &config, uint32_t level){
-    scene_ns_ = config.scene_ns_;
-    model_ns_ = config.model_ns_;
-    scene_ks_ = config.scene_ks_;
-    model_ks_ = config.model_ks_;
-    scene_ds_ = config.scene_ds_;
-    model_ds_ = config.model_ds_;
+    _ns = config.normal_sr_;
+    _ks = config.keypoint_sr_;
+    _ds = config.descriptor_sr_;
     rf_rad_ = config.rf_rad_;
     cg_size_ = config.cg_size_;
     cg_thresh_ = config.cg_thresh_;
 }
-
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_node");
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
     ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
+    ros::Publisher pubPose = nh.advertise<geometry_msgs::Transform>("pose_detection", 5);
 
-    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> dServer;
-    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig>::CallbackType f;
-    f = boost::bind(&dynamicCallback, _1, _2);
-    dServer.setCallback(f);
+    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> server;
+    dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig>::CallbackType dF;
+    dF = boost::bind(&dynamicCallback, _1, _2);
+    server.setCallback(dF);
 
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
+    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/box.pcd", *model);
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
 
     cloudMean<pcl::PointXYZI> cMean(nh);
-    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh, 0.01, 0.01, 0.01, 0.015);
+    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh);
 
     geometry_msgs::TransformStamped cameraPose;
     cameraPose.child_frame_id = "detection";
@@ -93,19 +83,20 @@ int main(int argc, char** argv){
     cameraPose.transform.rotation.y = q.y();
     cameraPose.transform.rotation.z = q.z();
     cameraPose.transform.rotation.w = q.w();
-    bool save = true;
 
-    model->is_dense = false;
-    cRecog.modelConstruct(model);
+    geometry_msgs::Transform pose;
 
     while (ros::ok())
     {
-        if(newCloud && cMean.cloudQueue.size() < 2){
+        cRecog.updateParm(_ns, _ks, _ds, rf_rad_, cg_size_, cg_thresh_);
+        if(newCloud && cMean.cloudQueue.size() < 5){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
         }else{
+            cRecog.modelConstruct(model);
+            
             cMean.meanFilter(*scene_blob, blob.width, blob.height);
-            cRecog.remover(scene_blob, blob.width, blob.height, 0.7, 0.6, *scene);
+            cRecog.remover(scene_blob, blob.width, blob.height, 0.5, 0.5, *scene);
             scene->is_dense = false;
             
             // Clustering
@@ -125,13 +116,13 @@ int main(int argc, char** argv){
                                    rotation (2,0), rotation (2,1), rotation (2,2));
                 tf2Scalar roll, pitch, yaw;
                 mat.getEulerYPR(yaw, pitch, roll);
-                ROS_ERROR("Roll: %f, Pitch: %f, Yaw: %f", roll, pitch, yaw);
-                printf ("\n");
-                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
-                printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
-                printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
-                printf ("\n");
-                printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+                tf2::Quaternion q;
+                q.setRPY(roll, pitch, yaw);
+                pose.translation.x = translation(0);
+                pose.translation.y = translation(1);
+                pose.translation.z = translation(2);
+                pose.rotation = tf2::toMsg(q);
+                pubPose.publish(pose);
             }
             scene->header.frame_id= "detection";
             pcl_conversions::toPCL(ros::Time::now(), scene->header.stamp);

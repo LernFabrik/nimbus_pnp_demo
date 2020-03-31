@@ -6,20 +6,23 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 
 template <class PointType, class NormalType>
-nimbus::cloudRecognition<PointType, NormalType>::cloudRecognition(ros::NodeHandle nh, 
-                                           double normalSR, 
-                                           double keypointSR, 
-                                           double shotSR, 
-                                           double referenceSR) : cloudFeatures<PointType, NormalType>(nh), _nh(nh)
-{
-    this->normal_sr = normalSR;
-    this->keypoint_sr = keypointSR;
-    this->shot_sr = shotSR;
-    this->reference_sr = referenceSR;
-}
+nimbus::cloudRecognition<PointType, NormalType>::cloudRecognition(ros::NodeHandle nh) : 
+                                                 cloudFeatures<PointType, NormalType>(nh), _nh(nh)
+{}
 
 template <class PointType, class NormalType>
 nimbus::cloudRecognition<PointType, NormalType>::~cloudRecognition(){}
+
+template <class PointType, class NormalType>
+void nimbus::cloudRecognition<PointType, NormalType>::updateParm(double ns, double ks, double ds, double rs, double cs, double ct)
+{
+    this->normal_sr =  ns;
+    this->keypoint_sr = ks;
+    this->shot_sr = ds;
+    this->reference_sr = rs;
+    this->cg_size_ = cs;
+    this->cg_thresh_ = ct;
+}
 
 template <class PointType, class NormalType>
 void nimbus::cloudRecognition<PointType, NormalType>::modelConstruct(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob)
@@ -59,6 +62,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::cloudCorrespondence(const 
             model_scene_corr->push_back(corr);
         }
     }
+    ROS_INFO("Correspondence found: %d", (int)model_scene_corr->size());
 }
 
 template <class PointType, class NormalType>
@@ -68,8 +72,8 @@ void nimbus::cloudRecognition<PointType, NormalType>::cloudHough3D(const pcl::Po
 {
     cloudCorrespondence(blob);
     pcl::Hough3DGrouping<PointType, PointType, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
-    clusterer.setHoughBinSize (0.017);
-    clusterer.setHoughThreshold (3.5);
+    clusterer.setHoughBinSize (cg_size_);
+    clusterer.setHoughThreshold (cg_thresh_);
     clusterer.setUseInterpolation (true);
     clusterer.setUseDistanceWeight (false);
 
