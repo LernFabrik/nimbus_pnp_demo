@@ -21,6 +21,10 @@
  * http://www.pointclouds.org/documentation/tutorials/#keypoints-tutorial
 */
 namespace nimbus{
+    /**
+     * @brief Implementation of keypoints extraction algorithms
+     * @tparam PointInType Point Cloud Type
+     */
     template <class PointInType>
     class cloudKeypoints : public cloudEdit<PointInType>{
         private:
@@ -36,22 +40,28 @@ namespace nimbus{
             cloudKeypoints(ros::NodeHandle nh);
             ~cloudKeypoints();
             //Functions
-            /** Uniform sampling Keypoints extraction (Detectors)
-             * @brief http://docs.pointclouds.org/trunk/classpcl_1_1_uniform_sampling.html
-             * @param Input Cloud
-             * @param Output keypoint cloud
-            */
-           void cloudUniformSampling(const PointCloudConstPtr blob);
+            /**
+             * @brief Uniform sampling Keypoints extraction (Detectors)
+             * http://docs.pointclouds.org/trunk/classpcl_1_1_uniform_sampling.html
+             * @param blob Input cloud
+             */
+            void cloudUniformSampling(const PointCloudConstPtr blob);
 
-           /** ISSKeypoint3D 
-            * Detects Intrinstic Shape Sigmature keypoint for a given point cloud
-            * Reconmmended to implement Filter before
-           */
-          template <typename NormalType>
-          void cloudISSKeypoints(const PointCloudConstPtr blob);
+            /**
+             * @brief ISSKeypoint3D 
+             * Detects Intrinstic Shape Sigmature keypoint for a given point cloud
+             * Reconmmended to implement Filter before
+             * @tparam NormalType 
+             * @param blob 
+             */
+            template <typename NormalType>
+            void cloudISSKeypoints(const PointCloudConstPtr blob);
 
-          /** NARF (Normal Aligned Radial Feature) */
-          void cloudNarf(const PointCloudConstPtr blob);
+            /**
+             * @brief NARF (Normal Aligned Radial Feature)
+             * @param blob Input cloud
+             */
+            void cloudNarf(const PointCloudConstPtr blob);
             
     };
 }
