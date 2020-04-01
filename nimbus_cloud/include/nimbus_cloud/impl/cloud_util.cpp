@@ -67,12 +67,12 @@ void nimbus::cloudEdit<T>::zRemover(const PointCloudConstPtr blob,
 }
 
 template <class T>
-double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr &cloud){
+double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr cloud){
     double res = 0.0;
     int _points = 0;
     int nres;
     std::vector<int> indices(2);
-    std::vector<float> sqr_distance(2);
+    std::vector<float> sqr_distance(10);
     pcl::search::KdTree<T> tree;
     tree.setInputCloud(cloud);
     
@@ -80,10 +80,10 @@ double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr &cl
         if(! std::isfinite(cloud->points[i].x)){
             continue;
         }
-        nres = tree.nearestKSearch(i, 2, indices, sqr_distance);
-        if(nres == 2){
-            ROS_WARN("Square distance point 1: %f, 2: %f", sqr_distance[0], sqr_distance[1]);
-            res += sqrt(sqr_distance[1]);
+        // Search for 10 neighbors and take the max square distance
+        nres = tree.nearestKSearch(i, 10, indices, sqr_distance);
+        if(nres == 2 && sqr_distance[9] > 0.0001){
+            res += sqrt(sqr_distance[9]);
             ++_points;
         }
     }
@@ -91,4 +91,25 @@ double nimbus::cloudEdit<T>::computeCloudResolution(const PointCloudConstPtr &cl
         res /= _points;
     }
     return res;
+}
+
+template <class T>
+void nimbus::cloudEdit<T>::_toRangeImage(const PointCloudConstPtr cloud, pcl::RangeImage &temp_range_image)
+{
+    float noise_level = 0.0;
+    float min_range = 0.0f;
+    int boder_size = 1;
+    float angular_resolution = pcl::deg2rad(1.0);
+    float max_angle_width = pcl::deg2rad(66.0);
+    float max_angle_height = pcl::deg2rad(54.0);
+    Eigen::Affine3f sensorPose = (Eigen::Affine3f)Eigen::Translation3f(cloud->sensor_origin_[0],
+                                                                       cloud->sensor_origin_[1],
+                                                                       cloud->sensor_origin_[2]);
+    pcl::RangeImage::CoordinateFrame coordinateFrame = pcl::RangeImage::CAMERA_FRAME;
+
+    temp_range_image.createFromPointCloud(*cloud, angular_resolution, max_angle_width, 
+                                          max_angle_height, sensorPose, coordinateFrame, 
+                                          noise_level, min_range, boder_size);
+    temp_range_image.setUnseenToMaxRange();
+
 }

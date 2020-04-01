@@ -6,6 +6,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -93,6 +94,18 @@ int main(int argc, char** argv){
                     ROS_INFO("Saved");
                     save == false;
                 }
+                /////////////////////////////////////////////////////////////////////////////////////////////////////////
+                // pcl::RangeImage::Ptr range_image (new pcl::RangeImage);
+                // cloud_edit._toRangeImage(cloudZ, *range_image);
+                // ROS_INFO("Range Image size: %d", (int)range_image->points.size());
+                // pcl::visualization::PCLVisualizer viewer("Range Image");
+                // viewer.setBackgroundColor(1,1,1);
+                // viewer.addCoordinateSystem(1.0f, "global");
+                // pcl::visualization::PointCloudColorHandlerCustom<pcl::PointWithRange> range_image_color_handler (range_image, 150, 150, 150);
+                // viewer.addPointCloud(range_image, range_image_color_handler, "range image");
+                // viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "range image");
+                // viewer.spin();
+                /////////////////////////////////////////////////////////////////////////////////////////////////////////
                 cloudZ->header.frame_id= "Mcamera";
                 pcl_conversions::toPCL(ros::Time::now(), cloudZ->header.stamp);
                 pub.publish(cloudZ);

@@ -9,6 +9,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 
+#include <pcl/range_image/range_image.h>
+
 namespace nimbus{
     template <class T>
     class cloudEdit
@@ -16,7 +18,7 @@ namespace nimbus{
     private:
         ros::NodeHandle _nh;
         typedef pcl::PointCloud<T> PointCloud;
-        typedef boost::shared_ptr<const PointCloud > PointCloudConstPtr; 
+        typedef boost::shared_ptr<const PointCloud > PointCloudConstPtr;
     public:
         cloudEdit(ros::NodeHandle nh);
         ~cloudEdit();
@@ -26,7 +28,8 @@ namespace nimbus{
         void zRemover(const PointCloudConstPtr blob,
                     float maxDis, float minDis,
                     PointCloud &res);
-        double computeCloudResolution(const PointCloudConstPtr &cloud);
+        double computeCloudResolution(const PointCloudConstPtr cloud);
+        void _toRangeImage(const PointCloudConstPtr cloud, pcl::RangeImage &range);
     };
 }
 
