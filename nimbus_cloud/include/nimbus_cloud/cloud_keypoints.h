@@ -12,6 +12,7 @@
 
 #include <pcl/keypoints/iss_3d.h>
 #include <pcl/keypoints/impl/iss_3d.hpp>
+#include <pcl/keypoints/narf_keypoint.h>
 
 #include <nimbus_cloud/cloud_util.h>
 
@@ -48,6 +49,9 @@ namespace nimbus{
            */
           template <typename NormalType>
           void cloudISSKeypoints(const PointCloudConstPtr blob);
+
+          /** NARF (Normal Aligned Radial Feature) */
+          void cloudNarf(const PointCloudConstPtr blob);
             
     };
 }
@@ -84,6 +88,29 @@ void nimbus::cloudKeypoints<PointInType>::cloudISSKeypoints(const PointCloudCons
     iss.setSearchMethod(tree);
     keypointOut.reset(new pcl::PointCloud<PointInType>());
     iss.compute(*keypointOut);
+}
+
+template <class PointInType>
+void nimbus::cloudKeypoints<PointInType>::cloudNarf(const PointCloudConstPtr blob)
+{
+    pcl::RangeImage::Ptr range_image_ptr (new pcl::RangeImage);
+    this->_toRangeImage(blob, *range_image_ptr);
+    pcl::RangeImage &range_image = *range_image_ptr;
+
+    pcl::RangeImageBorderExtractor range_border_extractor;
+    pcl::NarfKeypoint narf_keypoint(&range_border_extractor);
+    narf_keypoint.getParameters().support_size = 0.01;
+    narf_keypoint.getParameters().add_points_on_straight_edges = tree;
+    narf_keypoint.getParameters().distance_for_additional_points = 0.5;
+
+    pcl::PointCloud<int> keypoint_indices;
+    narf_keypoint.compute(keypoint_indices);
+
+    keypointOut.reset(new pcl::PointCloud<PointInType>());
+    pcl::PointCloud<pcl::PointXYZI> &keypoints = *keypointOut;
+    keypoints.points.resize(keypoint_indices.points.size());
+    for(std::size_t i = 0; i < keypoint_indices.points.size(); ++i)
+        keypoints.points[i].getVector3fMap() = range_image.points[keypoint_indices.points[i]].getVector3fMap();
 }
 
 #endif
