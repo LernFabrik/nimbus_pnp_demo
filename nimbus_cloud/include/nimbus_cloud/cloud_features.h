@@ -20,6 +20,11 @@
  * http://www.pointclouds.org/documentation/tutorials/how_features_work.php#rusudissertation
 */
 namespace nimbus{
+    /**
+     * @brief Implementation of feature decriptor extraction algorithms
+     * @tparam PointType 
+     * @tparam NormalType 
+     */
     template <class PointType, class NormalType>
     class cloudFeatures : public cloudKeypoints<PointType> {
         private:

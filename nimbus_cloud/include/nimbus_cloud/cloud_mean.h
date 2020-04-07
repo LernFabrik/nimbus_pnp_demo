@@ -8,12 +8,16 @@
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
 
+#include <nimbus_cloud/cloud_filter.h>
+
 template <class T>
-class cloudMean
+class cloudMean : public nimbus::cloudFilter<T>
 {
 private:
     typedef pcl::PointCloud<T> PointCloud;
     ros::NodeHandle _nh;
+public:
+    typedef nimbus::cloudFilter<T> cFilter; 
 public:
     cloudMean(ros::NodeHandle nh);
     ~cloudMean();
@@ -25,7 +29,7 @@ public:
 };
 
 template <class T>
-cloudMean<T>::cloudMean(ros::NodeHandle nh): _nh(nh){}
+cloudMean<T>::cloudMean(ros::NodeHandle nh): cFilter(nh), _nh(nh){}
 template <class T>
 cloudMean<T>::~cloudMean(){}
 
@@ -39,11 +43,14 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
     std::vector<float> addZ(width*height, 0);
     std::vector<float> ampt(width*height, 0);
     //Point_Cloud sum;
+    PointCloud tempToFilter;
     PointCloud tempC;
     res.width = width;
     res.height = height;
     while (!cloudQueue.isEmpty()){
-        cloudQueue.dequeue(tempC);
+        cloudQueue.dequeue(tempToFilter);
+        //Filter Implementation
+        //this->voxelGrid(tempToFilter, tempC);
         int i = 0;
         for(int i = 0; i < tempC.points.size(); i++){
             if(!std::isnan(tempC.points[i].x)){
