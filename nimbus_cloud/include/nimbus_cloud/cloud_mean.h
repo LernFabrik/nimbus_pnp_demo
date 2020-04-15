@@ -22,6 +22,13 @@ public:
     cloudMean(ros::NodeHandle nh);
     ~cloudMean();
 
+    /**
+     * @brief This will take mean of individual points
+     * @param res 
+     * @param width 
+     * @param height 
+     * ToDo: Implementation of voxel grid filter
+     */
     void meanFilter(pcl::PointCloud<T> &res, int width, int height);
     // Variables
     pcl::SynchronizedQueue<PointCloud> cloudQueue;
@@ -48,7 +55,7 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
     res.width = width;
     res.height = height;
     while (!cloudQueue.isEmpty()){
-        cloudQueue.dequeue(tempToFilter);
+        cloudQueue.dequeue(tempC);
         //Filter Implementation
         //this->voxelGrid(tempToFilter, tempC);
         int i = 0;
