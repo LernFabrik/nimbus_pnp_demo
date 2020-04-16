@@ -35,6 +35,6 @@ namespace nimbus{
 
 // https://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
 // To remove the undefined reference to the class
-template class nimbus::cloudEdit<pcl::PointXYZI>;
+template class nimbus::cloudEdit<pcl::PointXYZ>;
 
 #endif // !cloudEdit_H_

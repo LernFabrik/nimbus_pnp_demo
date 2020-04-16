@@ -48,7 +48,7 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
     std::vector<float> addX(width*height, 0);
     std::vector<float> addY(width*height, 0);
     std::vector<float> addZ(width*height, 0);
-    std::vector<float> ampt(width*height, 0);
+    //std::vector<float> ampt(width*height, 0);
     //Point_Cloud sum;
     PointCloud tempToFilter;
     PointCloud tempC;
@@ -64,7 +64,7 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
                 addX[i] += tempC.points[i].x;
                 addY[i] += tempC.points[i].y;
                 addZ[i] += tempC.points[i].z;
-                ampt[i] += tempC.points[i].intensity;
+                //ampt[i] += tempC.points[i].intensity;
                 mnCounter[i] +=1;
                 // ROS_INFO("X: %f, Y: %f, Z:%f AMP: %f, Mean Counter: %d", addX[i], addY[i], addZ[i], ampt[i], mnCounter[i]);
             }else{
@@ -74,17 +74,17 @@ void cloudMean<T>::meanFilter(pcl::PointCloud<T> &res, int width, int height){
         }
     }
     for(int i = 0; i < mnCounter.size(); i++){
-        pcl::PointXYZI temPoint;
+        pcl::PointXYZ temPoint;
         if(mnCounter[i] == 0){
             temPoint.x = NAN;
             temPoint.y = NAN;
             temPoint.z = NAN;
-            temPoint.intensity = NAN;
+            //temPoint.intensity = NAN;
         }else{
             temPoint.x = addX[i] / mnCounter[i];
             temPoint.y = addY[i] / mnCounter[i];
             temPoint.z = addZ[i] / mnCounter[i];
-            temPoint.intensity = ampt[i] / mnCounter[i];
+            //temPoint.intensity = ampt[i] / mnCounter[i];
         }
         res.points.push_back(temPoint);
     }

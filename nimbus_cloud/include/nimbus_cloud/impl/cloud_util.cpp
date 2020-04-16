@@ -27,7 +27,7 @@ void nimbus::cloudEdit<T>::remover(const PointCloudConstPtr blob,
                 tempX.push_back(blob->points[pCounter].x);
                 tempY.push_back(blob->points[pCounter].y);
                 tempZ.push_back(blob->points[pCounter].z);
-                tempA.push_back(blob->points[pCounter].intensity);
+                //tempA.push_back(blob->points[pCounter].intensity);
                 pCounter ++;
             }else pCounter ++;
         }
@@ -37,7 +37,7 @@ void nimbus::cloudEdit<T>::remover(const PointCloudConstPtr blob,
                 temP.x = tempX[i];
                 temP.y = tempY[i];
                 temP.z = tempZ[i];
-                temP.intensity = tempA[i];
+                //temP.intensity = tempA[i];
                 res.points.push_back(temP);
             }
         }
@@ -52,13 +52,13 @@ void nimbus::cloudEdit<T>::zRemover(const PointCloudConstPtr blob,
                     PointCloud &res){
     if(blob->points.empty())
         return;
-    pcl::PointXYZI tempPoints;
+    pcl::PointXYZ tempPoints;
     for(int i = 0; i < blob->points.size(); i++){
         if(maxDis > blob->points[i].z > minDis){
             tempPoints.x = blob->points[i].x;
             tempPoints.y = blob->points[i].y;
             tempPoints.z = blob->points[i].z;
-            tempPoints.intensity = blob->points[i].intensity;
+            //tempPoints.intensity = blob->points[i].intensity;
             res.points.push_back(tempPoints);
         } 
     }

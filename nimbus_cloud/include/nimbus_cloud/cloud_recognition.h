@@ -19,7 +19,7 @@
 namespace nimbus{
     struct modelData{
         pcl::PointCloud<pcl::Normal>::Ptr normal;
-        pcl::PointCloud<pcl::PointXYZI>::Ptr keypoint;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr keypoint;
         pcl::PointCloud<pcl::SHOT352>::Ptr descriptor;
         pcl::PointCloud<pcl::ReferenceFrame>::Ptr blRefence;
     };
@@ -40,7 +40,7 @@ namespace nimbus{
              * @brief This will run neccessary function and store the\
              * model metadata in the structure
             */
-            void modelConstruct(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob);
+            void modelConstruct(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob);
             /** Update Params
              * This will run per loop and update the param/
              * if Changed by dymanic param */
@@ -52,9 +52,9 @@ namespace nimbus{
              * @param input search radius
              * @param output normal cloud
             */
-            void cloudCorrespondence(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob);
+            void cloudCorrespondence(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob);
                                 
-            void cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+            void cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob,
                               std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, 
                               std::vector<pcl::Correspondences> &clustered_corrs);
 
@@ -63,6 +63,6 @@ namespace nimbus{
 
 // https://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
 // To remove the undefined reference to the class
-template class nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal>;
+template class nimbus::cloudRecognition<pcl::PointXYZ, pcl::Normal>;
 
 #endif

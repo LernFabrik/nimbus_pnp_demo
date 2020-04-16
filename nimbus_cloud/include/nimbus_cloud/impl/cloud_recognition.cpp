@@ -25,7 +25,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::updateParm(double ns, doub
 }
 
 template <class PointType, class NormalType>
-void nimbus::cloudRecognition<PointType, NormalType>::modelConstruct(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob)
+void nimbus::cloudRecognition<PointType, NormalType>::modelConstruct(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
 {
     this->cloudNormalEstimationOMP(blob);
     this->cloudUniformSampling(blob);
@@ -38,7 +38,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::modelConstruct(const pcl::
 }
 
 template <class PointType, class NormalType>
-void nimbus::cloudRecognition<PointType, NormalType>::cloudCorrespondence(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob)
+void nimbus::cloudRecognition<PointType, NormalType>::cloudCorrespondence(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
 {
     //pcl::CorrespondencesPtr model_scene_corr (new pcl::Correspondences());
     this->cloudNormalEstimationOMP(blob);
@@ -66,7 +66,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::cloudCorrespondence(const 
 }
 
 template <class PointType, class NormalType>
-void nimbus::cloudRecognition<PointType, NormalType>::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+void nimbus::cloudRecognition<PointType, NormalType>::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob,
                               std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &rototranslations, 
                               std::vector<pcl::Correspondences> &clustered_corrs)
 {
