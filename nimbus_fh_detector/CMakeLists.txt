@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(nimbus_vfh_detector)
+project(nimbus_fh_detector)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -82,7 +82,7 @@ add_definitions(${PCL_DEFINITIONS})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_nimbus_vfh_detector.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_nimbus_fh_detector.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
