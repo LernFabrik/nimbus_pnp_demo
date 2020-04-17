@@ -2,6 +2,7 @@
 #include <thread>
 
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -32,7 +33,7 @@ class Detector : public nimbus::Filters<PointType>{
     public:
         Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<PointType>(nh)
         {
-            _sub = _nh.subscribe<pcl::PointCloud<PointType>>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
+            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
 
             _cameraPose.child_frame_id = "detector";
@@ -51,19 +52,26 @@ class Detector : public nimbus::Filters<PointType>{
 
         ~Detector(){}
 
-        void callback(const PointCloud::ConstPtr& msg)
+        void callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
             _cloud.reset(new PointCloud());
-            pcl::copyPointCloud(*msg, *_cloud);
-            _newCloud = true;
+            pcl::PCLPointCloud2 pcl_pc2;
+            pcl_conversions::toPCL(*msg, pcl_pc2);
+            pcl::fromPCLPointCloud2(pcl_pc2, *_cloud);
+            
+            _cloud->header.frame_id = "detector";
+            pcl_conversions::toPCL(ros::Time::now(), _cloud->header.stamp);
+            _pub.publish(_cloud);
         }
 
         void run()
         {
             while(ros::ok())
             {
-                if(_newCloud && !_cloud->empty())
+                if(_newCloud)
                 {
+                    // To Wait for the next cloud
+                    _newCloud = false;
                     this->movingLeastSquare(_cloud);
                     this->_filCloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), this->_filCloud->header.stamp);
