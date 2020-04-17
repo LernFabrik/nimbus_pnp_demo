@@ -6,6 +6,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/common.h>
 
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -79,16 +80,16 @@ void nimbus::Filters<PointType>::voxelGrid(const PointCloudTypeConstPtr blob)
 template <class PointType>
 void nimbus::Filters<PointType>::movingLeastSquare(const PointCloudTypePtr blob)
 {
-    pcl::MovingLeastSquares<PointType, PointType> mls;
-    mls.setInputCloud(blob);
-    mls.setSearchRadius(0.01);
-    mls.setPolynomialFit(true);
-    mls.setPolynomialOrder(2);
-    mls.setUpsamplingMethod(pcl::MovingLeastSquares<PointType, PointType>::SAMPLE_LOCAL_PLANE);
-    mls.setUpsamplingRadius(0.005);
-    mls.setUpsamplingStepSize(0.003);
+    typename pcl::MovingLeastSquares<pcl::PointXYZI, pcl::PointXYZI>::Ptr mls;
+    mls->setInputCloud(blob);
+    mls->setSearchRadius(0.01);
+    mls->setPolynomialFit(true);
+    mls->setPolynomialOrder(2);
+    mls->setUpsamplingMethod(pcl::MovingLeastSquares<PointType, PointType>::SAMPLE_LOCAL_PLANE);
+    mls->setUpsamplingRadius(0.005);
+    mls->setUpsamplingStepSize(0.003);
     _filCloud.reset(new pcl::PointCloud<PointType>());
-    //mls.process(*_filCloud);
+    mls->process(*_filCloud);
 }
 
 #endif
