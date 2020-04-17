@@ -82,7 +82,7 @@ template <class PointType, class NormalType, class DescriptorType>
 void nimbus::Features<PointType, NormalType, DescriptorType>::cloudFPFHEstimation(const PointCloudTypeConstPtr blob)
 {
     pcl::FPFHEstimation<PointType, NormalType, DescriptorType> fpfh;
-    pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
+    typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
     fpfh.setSearchSurface(blob);
     //ToDo: determine the Keypoints
     fpfh.setInpoutCloud(blob);
