@@ -59,7 +59,7 @@ namespace nimbus{
              * Current system do not initializred with PointXYZI
              */
             template <typename PointIn, typename PointOut>
-            void movingLeastSquare(const PointCloudTypePtr &blob, pcl::PointCloud<pcl::PointNormal> &res);
+            void movingLeastSquare(const boost::shared_ptr<const pcl::PointCloud<PointIn>> &blob, pcl::PointCloud<PointOut> &res);
             
     };
 }
@@ -73,15 +73,15 @@ void nimbus::Filters<PointType>::voxelGrid(const PointCloudTypeConstPtr blob)
 {
     pcl::VoxelGrid<PointType> vox;
     vox.setInputCloud(blob);
-    // Leaf Size is 3cm
-    vox.setLeafSize(0.03f, 0.03f, 0.03f);
+    // Leaf Size is 1cm
+    vox.setLeafSize(0.01f, 0.01f, 0.01f);
     _filCloud.reset(new pcl::PointCloud<PointType>());
     vox.filter(*_filCloud);
 }
 
 template <class PointType>
 template <typename PointIn, typename PointOut>
-void nimbus::Filters<PointType>::movingLeastSquare(const PointCloudTypePtr &blob, pcl::PointCloud<pcl::PointNormal> &res)
+void nimbus::Filters<PointType>::movingLeastSquare(const boost::shared_ptr<const pcl::PointCloud<PointIn>>  &blob, pcl::PointCloud<PointOut> &res)
 {
     typename pcl::search::KdTree<PointIn>::Ptr tree (new pcl::search::KdTree<PointIn>);
     typename pcl::PointCloud<PointIn>::Ptr cloud (new pcl::PointCloud<PointIn>());
@@ -89,13 +89,13 @@ void nimbus::Filters<PointType>::movingLeastSquare(const PointCloudTypePtr &blob
     pcl::removeNaNFromPointCloud(*blob, *cloud, indices);
     pcl::MovingLeastSquares<PointIn, PointOut> mls;
     mls.setInputCloud(cloud);
-    mls.setSearchRadius(0.01);
+    mls.setSearchRadius(0.03);
     mls.setPolynomialFit(true);
     mls.setPolynomialOrder(2);
-    mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal>::SAMPLE_LOCAL_PLANE);
-    mls.setUpsamplingRadius(0.005);
-    mls.setUpsamplingStepSize(0.003);
-    pcl::PointCloud<pcl::PointNormal>::Ptr filCloud (new pcl::PointCloud<pcl::PointNormal>());
+    mls.setUpsamplingMethod(pcl::MovingLeastSquares<PointIn, PointOut>::SAMPLE_LOCAL_PLANE);
+    mls.setUpsamplingRadius(0.02);
+    mls.setUpsamplingStepSize(0.01);
+    typename pcl::PointCloud<PointOut>::Ptr filCloud (new pcl::PointCloud<PointOut>());
     mls.process(*filCloud);
     pcl::copyPointCloud(*filCloud, res);
 }

@@ -14,13 +14,15 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+#include <pcl/filters/filter.h>
+#include <pcl/io/impl/synchronized_queue.hpp>
 
 #include <nimbus_fh_detector/filters.h>
 
 typedef pcl::PointXYZI PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
 
-class Detector : public nimbus::Filters<PointType>{
+class Detector : public nimbus::Filters<pcl::PointXYZ>{
     private:
         ros::NodeHandle _nh; 
         ros::Subscriber _sub;
@@ -29,9 +31,11 @@ class Detector : public nimbus::Filters<PointType>{
         geometry_msgs::TransformStamped _cameraPose;
         PointCloud::Ptr _cloud;
         bool _newCloud = false;
-
+        
+        pcl::SynchronizedQueue<PointCloud::Ptr> _queue_cloud;
+        
     public:
-        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<PointType>(nh)
+        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<pcl::PointXYZ>(nh)
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
@@ -58,24 +62,28 @@ class Detector : public nimbus::Filters<PointType>{
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *_cloud);
-            
-            _cloud->header.frame_id = "detector";
-            pcl_conversions::toPCL(ros::Time::now(), _cloud->header.stamp);
-            _pub.publish(_cloud);
+            _cloud->is_dense = false;
+            _queue_cloud.enqueue(_cloud);          
         }
 
         void run()
         {
             while(ros::ok())
             {
-                if(_newCloud)
+                if(!_queue_cloud.isEmpty())
                 {
-                    // To Wait for the next cloud
-                    _newCloud = false;
-                    this->movingLeastSquare(_cloud);
-                    this->_filCloud->header.frame_id = "detector";
-                    pcl_conversions::toPCL(ros::Time::now(), this->_filCloud->header.stamp);
-                    _pub.publish(this->_filCloud);
+                    PointCloud::Ptr cloud (new PointCloud());
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>());
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr filCloud (new pcl::PointCloud<pcl::PointXYZ>());
+                    while(_queue_cloud.size() > 5) _queue_cloud.dequeue(cloud);
+                    _queue_cloud.dequeue(cloud);
+                    pcl::copyPointCloud(*cloud, *tempCloud);
+                    this->movingLeastSquare<pcl::PointXYZ, pcl::PointXYZ>(tempCloud, *filCloud);
+
+                    filCloud->header.frame_id = "detector";
+                    pcl_conversions::toPCL(ros::Time::now(), filCloud->header.stamp);
+
+                    _pub.publish(filCloud);
                     ros::spinOnce();
                 }else{
                     ros::spinOnce();
