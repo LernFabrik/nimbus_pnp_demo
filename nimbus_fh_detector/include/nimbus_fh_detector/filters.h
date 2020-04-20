@@ -56,8 +56,10 @@ namespace nimbus{
              * @param blob Input cloud
              * @result is stored in: this->_filCloud
              * @todo change the fixed parameter to dymanic so that it can be change during the run time.
+             * Current system do not initializred with PointXYZI
              */
-            void movingLeastSquare(const PointCloudTypePtr blob);
+            template <typename PointIn, typename PointOut>
+            void movingLeastSquare(const PointCloudTypePtr &blob, pcl::PointCloud<pcl::PointNormal> &res);
             
     };
 }
@@ -78,18 +80,24 @@ void nimbus::Filters<PointType>::voxelGrid(const PointCloudTypeConstPtr blob)
 }
 
 template <class PointType>
-void nimbus::Filters<PointType>::movingLeastSquare(const PointCloudTypePtr blob)
+template <typename PointIn, typename PointOut>
+void nimbus::Filters<PointType>::movingLeastSquare(const PointCloudTypePtr &blob, pcl::PointCloud<pcl::PointNormal> &res)
 {
-    typename pcl::MovingLeastSquares<pcl::PointXYZI, pcl::PointXYZI>::Ptr mls;
-    mls->setInputCloud(blob);
-    mls->setSearchRadius(0.01);
-    mls->setPolynomialFit(true);
-    mls->setPolynomialOrder(2);
-    mls->setUpsamplingMethod(pcl::MovingLeastSquares<PointType, PointType>::SAMPLE_LOCAL_PLANE);
-    mls->setUpsamplingRadius(0.005);
-    mls->setUpsamplingStepSize(0.003);
-    _filCloud.reset(new pcl::PointCloud<PointType>());
-    mls->process(*_filCloud);
+    typename pcl::search::KdTree<PointIn>::Ptr tree (new pcl::search::KdTree<PointIn>);
+    typename pcl::PointCloud<PointIn>::Ptr cloud (new pcl::PointCloud<PointIn>());
+    std::vector<int> indices; 
+    pcl::removeNaNFromPointCloud(*blob, *cloud, indices);
+    pcl::MovingLeastSquares<PointIn, PointOut> mls;
+    mls.setInputCloud(cloud);
+    mls.setSearchRadius(0.01);
+    mls.setPolynomialFit(true);
+    mls.setPolynomialOrder(2);
+    mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal>::SAMPLE_LOCAL_PLANE);
+    mls.setUpsamplingRadius(0.005);
+    mls.setUpsamplingStepSize(0.003);
+    pcl::PointCloud<pcl::PointNormal>::Ptr filCloud (new pcl::PointCloud<pcl::PointNormal>());
+    mls.process(*filCloud);
+    pcl::copyPointCloud(*filCloud, res);
 }
 
 #endif
