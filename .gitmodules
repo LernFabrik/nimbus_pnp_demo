@@ -1,0 +1,3 @@
+[submodule "Azure_Kinect_ROS_Driver"]
+	path = Azure_Kinect_ROS_Driver
+	url = https://github.com/prachandabhanu/Azure_Kinect_ROS_Driver.git
