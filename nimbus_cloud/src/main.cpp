@@ -53,7 +53,7 @@ int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_node");
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
-    ros::Publisher pub = nh.advertise<PointCloud>("pointcloud", 5);
+    ros::Publisher pub = nh.advertise<PointCloud>("filtered_cloud", 5);
     ros::Publisher pubPose = nh.advertise<geometry_msgs::Transform>("pose_detection", 5);
 
     dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> server;

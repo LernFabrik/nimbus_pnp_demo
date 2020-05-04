@@ -36,10 +36,6 @@ namespace nimbus{
             typedef typename PointCloudType::Ptr PointCloudTypePtr;
             typedef typename PointCloudType::ConstPtr PointCloudTypeConstPtr;
         
-        protected:
-            typename pcl::PointCloud<NormalType>::Ptr _normals;
-            typename pcl::PointCloud<DescriptorType>::Ptr _descriptor;
-        
         public:
             Features(ros::NodeHandle nh);
             ~Features();
