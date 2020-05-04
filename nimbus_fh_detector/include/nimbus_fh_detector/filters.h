@@ -30,9 +30,6 @@ namespace nimbus{
     class Filters{
         private:
             ros::NodeHandle _nh;
-            typedef pcl::PointCloud<PointType> PointCloudType;
-            typedef typename PointCloudType::Ptr PointCloudTypePtr;
-            typedef typename PointCloudType::ConstPtr PointCloudTypeConstPtr;
         
         public:
             Filters(ros::NodeHandle nh);
