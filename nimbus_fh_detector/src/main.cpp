@@ -18,6 +18,7 @@
 #include <pcl/io/impl/synchronized_queue.hpp>
 
 #include <nimbus_fh_detector/filters.h>
+#include <nimbus_fh_detector/features.h>
 
 typedef pcl::PointXYZI PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
@@ -33,9 +34,10 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
         bool _newCloud = false;
         
         pcl::SynchronizedQueue<PointCloud::Ptr> _queue_cloud;
+        nimbus::Features<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> _feature;
         
     public:
-        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<pcl::PointXYZ>(nh)
+        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<pcl::PointXYZ>(), _feature(nh, 0.01, 0.01, 0.01) 
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
@@ -78,7 +80,8 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
                     while(_queue_cloud.size() > 5) _queue_cloud.dequeue(cloud);
                     _queue_cloud.dequeue(cloud);
                     pcl::copyPointCloud(*cloud, *tempCloud);
-                    this->movingLeastSquare<pcl::PointXYZ, pcl::PointXYZ>(tempCloud, *filCloud);
+                    this->movingLeastSquare(tempCloud, *filCloud);
+                    //_feature.extraction(filCloud);
 
                     filCloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), filCloud->header.stamp);

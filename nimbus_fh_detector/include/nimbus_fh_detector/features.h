@@ -1,6 +1,7 @@
 #ifndef _FEATURES_H_
 #define _FEATURES_H_
 
+#include <boost/type_index.hpp>
 #include <ros/ros.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -15,6 +16,7 @@
 #include <pcl/features/shot_omp.h>
 #include <pcl/features/board.h>
 #include <pcl/features/fpfh.h>
+#include <pcl/features/fpfh_omp.h>
 #include <pcl/features/vfh.h>
 
 #include <nimbus_fh_detector/filters.h>
@@ -52,18 +54,19 @@ namespace nimbus{
             typename pcl::PointCloud<NormalType>::Ptr normals;
             typename pcl::PointCloud<DescriptorType>::Ptr descriptor;
             //Functions
-            void keypointUniformSampling(const PointCloudTypeConstPtr blob, PointCloudType &res);
+            void keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res);
             /**
              * @brief Normal Estimation with Kd Tree Search method
              * @param blob 
              */
-            void cloudNormalEstimationOMP(const PointCloudTypeConstPtr blob, PointCloudType &res);
+            void cloudNormalEstimationOMP(const PointCloudTypeConstPtr blob, pcl::PointCloud<NormalType> &res);
             /**
              * @brief Fast Point Feature Histogram(FPFH) descriptor
              * http://www.pointclouds.org/documentation/tutorials/fpfh_estimation.php#fpfh-estimation
              * @param blob 
              */
             void cloudFPFHEstimation(const PointCloudTypeConstPtr blob, pcl::PointCloud<DescriptorType> &descriptor);
+            void cloudSHOTEstimationOMP(const PointCloudTypeConstPtr blob, pcl::PointCloud<DescriptorType> &descriptor);
             void extraction(const PointCloudTypeConstPtr blob);
             
     };
@@ -80,7 +83,7 @@ template <class PointType, class NormalType, class DescriptorType>
 nimbus::Features<PointType, NormalType, DescriptorType>::~Features(){}
 
 template <class PointType, class NormalType, class DescriptorType>
-void nimbus::Features<PointType, NormalType, DescriptorType>::keypointUniformSampling(const PointCloudTypeConstPtr blob, PointCloudType &res)
+void nimbus::Features<PointType, NormalType, DescriptorType>::keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res)
 {
     pcl::UniformSampling<PointType> uniform;
     uniform.setInputCloud(blob);
@@ -91,7 +94,7 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::keypointUniformSam
 }
 
 template <class PointType, class NormalType, class DescriptorType>
-void nimbus::Features<PointType, NormalType, DescriptorType>::cloudNormalEstimationOMP(const PointCloudTypeConstPtr blob, PointCloudType &res)
+void nimbus::Features<PointType, NormalType, DescriptorType>::cloudNormalEstimationOMP(const PointCloudTypeConstPtr blob, pcl::PointCloud<NormalType> &res)
 {
     pcl::NormalEstimationOMP<PointType, NormalType> ne;
     ne.setInputCloud(blob);
@@ -111,10 +114,10 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::cloudFPFHEstimatio
     keypointUniformSampling(blob, *keypoints);
     cloudNormalEstimationOMP(blob, *normals);
 
-    pcl::FPFHEstimation<PointType, NormalType, DescriptorType> fpfh;
+    pcl::FPFHEstimationOMP<PointType, NormalType, DescriptorType> fpfh;
     typename pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
     fpfh.setSearchSurface(blob);
-    fpfh.setInpoutCloud(keypoints);
+    fpfh.setInputCloud(keypoints);
     fpfh.setInputNormals(normals);
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(_desc_sr);
@@ -124,13 +127,42 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::cloudFPFHEstimatio
 }
 
 template <class PointType, class NormalType, class DescriptorType>
+void nimbus::Features<PointType, NormalType, DescriptorType>::cloudSHOTEstimationOMP(const PointCloudTypeConstPtr blob, pcl::PointCloud<DescriptorType> &descriptor)
+{
+    keypoints.reset(new pcl::PointCloud<PointType>());
+    normals.reset (new pcl::PointCloud<NormalType>());
+    this->keypointUniformSampling(blob, *keypoints);
+    this->cloudNormalEstimationOMP(blob, *normals);
+
+    pcl::SHOTEstimationOMP<PointType, NormalType, DescriptorType> shot;
+    shot.setNumberOfThreads(4);
+    shot.setRadiusSearch(_desc_sr);
+    shot.setInputCloud(keypoints);
+    shot.setInputNormals(normals);
+    shot.setSearchSurface(blob);
+    typename pcl::PointCloud<DescriptorType>::Ptr _descriptor (new pcl::PointCloud<DescriptorType>());
+    shot.compute(*_descriptor);
+    pcl::copyPointCloud(*_descriptor, descriptor);
+}
+
+template <class PointType, class NormalType, class DescriptorType>
 void nimbus::Features<PointType, NormalType, DescriptorType>::extraction(const PointCloudTypeConstPtr blob)
 {
-    typename PointCloudType::Ptr res (new PointCloudType());
-    Filters<PointType> filters(_nh);
-    filters.movingLeastSquare<PointType, PointType>(blob, res);
     descriptor.reset(new pcl::PointCloud<DescriptorType>());
-    cloudFPFHEstimation(res, *descriptor);
+    this->cloudFPFHEstimation(blob, *descriptor);
+    // std::string sel = boost::typeindex::type_id<DescriptorType>().pretty_name();  //typeid(DescriptorType).name();
+    // switch(sel.c_str()){
+    //     case "pcl::FPFHSignature33":
+    //         ROS_INFO("Using FPFH Estimation");
+    //         //this->cloudFPFHEstimation(blob, *descriptor);
+    //         break;
+    //     case "pcl::SHOT352":
+    //         ROS_INFO("Using SHOT Estimation");
+    //         break;
+    //     default:
+    //         ROS_ERROR("Wrong Descriptor Selected");
+    //         break;
+    // }
 }
 
 #endif
