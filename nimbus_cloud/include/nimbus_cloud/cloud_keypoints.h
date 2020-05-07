@@ -33,7 +33,7 @@ namespace nimbus{
             typedef boost::shared_ptr<PointCloud> PointCloudPtr;
             typedef boost::shared_ptr<const PointCloud> PointCloudConstPtr;
             pcl::search::KdTree<pcl::PointXYZI>::Ptr tree;
-        protected:
+        public:
             typename pcl::PointCloud<PointInType>::Ptr keypointOut;
             double keypoint_sr;
         public:
