@@ -2,33 +2,32 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 project(object_recognition)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-else()
-        message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-find_package(PCL REQUIRED)
-find_package(HDF5 REQUIRED)
-find_package(FLANN REQUIRED)
-
-include_directories(include 
-    ${PCL_INCLUDE_DIRS}
-    ${HDF5_INCLUDE_DIR})
+find_package(PCL 1.10 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-#-------- Add Libraries: Web Socket and JSON RPC -----------
-# add_library(base64 "src/base64.cpp")
-# target_link_libraries(base64)
-# add_library(WebSocketClient "src/websocket.cpp")
-# target_link_libraries(WebSocketClient base64 jsoncpp ${CURL_LIBRARIES} ${WEBSOCKETPP_LIBRARIES})
+# Find right hdf5 file
+include (CheckIncludeFile)
+check_include_file ("hdf5/serial/hdf5.h" HDF5_SERIAL)
+if (HDF5_SERIAL)
+  set (HDF5 "hdf5_serial")
+  include_directories ("/usr/include/hdf5/serial")
+endif (HDF5_SERIAL)
 
-#-------- Executables ------------
+find_package(FLANN REQUIRED)
+
+include_directories(SYSTEM
+)
+
+
+find_package(FLANN REQUIRED)
+include_directories(${FLANN_INCLUDE_DIRS})
+
+include_directories(SYSTEM ${HDF5_INCLUDE_DIR})
+
 add_executable(vfh_detection src/vfh_detection.cpp)
-target_link_libraries(vfh_detection ${PCL_LIBRARIES}  ${Boost_LIBRARIES} FLANN::FLANN ${HDF5_LIBRARIES})
+target_link_libraries(vfh_detection ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5})
+

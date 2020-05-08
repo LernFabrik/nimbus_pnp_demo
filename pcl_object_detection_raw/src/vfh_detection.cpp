@@ -90,12 +90,6 @@ loadFeatureModels (const boost::filesystem::path &base_dir, const std::string &e
 int
 main (int argc, char** argv)
 {
-  if (argc < 2)
-  {
-    PCL_ERROR ("Need at least two parameters! Syntax is: %s [model_directory] [options]\n", argv[0]);
-    return (-1);
-  }
-
   std::string extension (".pcd");
   transform (extension.begin (), extension.end (), extension.begin (), (int(*)(int))tolower);
 
@@ -106,7 +100,7 @@ main (int argc, char** argv)
   std::vector<vfh_model> models;
 
   // Load the model histograms
-  loadFeatureModels (argv[1], extension, models);
+  loadFeatureModels ("data/", extension, models);
   pcl::console::print_highlight ("Loaded %d VFH models. Creating training data %s/%s.\n", 
       (int)models.size (), training_data_h5_file_name.c_str (), training_data_list_file_name.c_str ());
 
