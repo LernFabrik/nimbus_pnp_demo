@@ -1,5 +1,5 @@
-#ifndef CLOUD_MEAN_H
-#define CLOUD_MEAN_H
+#ifndef UTILITIES_H
+#define UTILITIES_H
 
 #include <pcl/io/impl/synchronized_queue.hpp>
 #include <ros/ros.h>
@@ -32,7 +32,7 @@ template <class PointType>
 cloudUtilities<PointType>::~cloudUtilities(){}
 
 template <class PointType>
-void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZI>> queue, int width, int height, pcl::PointCloud<PointType> &res){
+void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<PointType>> queue, int width, int height, pcl::PointCloud<PointType> &res){
     if(queue.isEmpty()) return;
     std::vector<float> conf(width*height, 0);
     std::vector<float> mnCounter(width*height, 0);
@@ -41,11 +41,11 @@ void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
     std::vector<float> addZ(width*height, 0);
     std::vector<float> ampt(width*height, 0);
     //Point_Cloud sum;
-    pcl::PointCloud<pcl::PointXYZI> tempC;
+    typedef pcl::PointCloud<PointType> tempC;
     res.width = width;
     res.height = height;
-    while (!cloudQueue.isEmpty()){
-        cloudQueue.dequeue(tempC);
+    while (!queue.isEmpty()){
+        queue.dequeue(tempC);
         //Filter Implementation
         //this->voxelGrid(tempToFilter, tempC);
         int i = 0;
@@ -56,7 +56,6 @@ void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
                 addZ[i] += tempC.points[i].z;
                 ampt[i] += tempC.points[i].intensity;
                 mnCounter[i] +=1;
-                // ROS_INFO("X: %f, Y: %f, Z:%f AMP: %f, Mean Counter: %d", addX[i], addY[i], addZ[i], ampt[i], mnCounter[i]);
             }else{
                 conf[i] = 1;
                 mnCounter[i] = 0;
@@ -64,7 +63,7 @@ void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
         }
     }
     for(int i = 0; i < mnCounter.size(); i++){
-        pcl::PointXYZI temPoint;
+        PointType temPoint;
         if(mnCounter[i] == 0){
             temPoint.x = NAN;
             temPoint.y = NAN;
@@ -80,4 +79,4 @@ void cloudUtilities<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
     }
 }
 
-#endif
+#endif  //UTILITIES_H
