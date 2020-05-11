@@ -14,6 +14,8 @@
 #include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 
+#include <pcl/visualization/pcl_visualizer.h>
+
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -49,6 +51,56 @@ void dynamicCallback(nimbus_cloud::searchRadiusConfig &config, uint32_t level){
     cg_thresh_ = config.cg_thresh_;
 }
 
+void visualization (const pcl::PointCloud<pcl::PointXYZI>::Ptr  model, 
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr  scene,
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
+                    std::vector<pcl::Correspondences> clustered_corrs, 
+                    nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> recog){
+    pcl::visualization::PCLVisualizer viewer("Correspondence");
+    viewer.addPointCloud<pcl::PointXYZI> (scene, "scene_cloud");
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZI> ());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZI> ());
+
+    pcl::transformPointCloud(*model, *off_scene_model, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+    pcl::transformPointCloud (*recog.mData.keypoint, *off_scene_model_keypoints, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
+    viewer.addPointCloud (off_scene_model, off_scene_model_color_handler, "off_scene_model");
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> scene_keypoints_color_handler (recog.keypointOut, 0, 0, 255);
+    viewer.addPointCloud (recog.keypointOut, scene_keypoints_color_handler, "scene_keypoints");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "scene_keypoints");
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> off_scene_model_keypoints_color_handler (off_scene_model_keypoints, 0, 0, 255);
+    viewer.addPointCloud (off_scene_model_keypoints, off_scene_model_keypoints_color_handler, "off_scene_model_keypoints");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "off_scene_model_keypoints");
+
+    for(std::size_t i = 0; i < rototranslations.size(); i++)
+    {
+        pcl::PointCloud<pcl::PointXYZI>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::transformPointCloud (*model, *rotated_model, rototranslations[i]);
+
+        std::stringstream ss_cloud;
+        ss_cloud << "instance" << i;
+
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> rotated_model_color_handler (rotated_model, 255, 0, 0);
+        viewer.addPointCloud (rotated_model, rotated_model_color_handler, ss_cloud.str ());
+
+        for (std::size_t j = 0; j < clustered_corrs[i].size (); ++j)
+        {
+            std::stringstream ss_line;
+            ss_line << "correspondence_line" << i << "_" << j;
+            pcl::PointXYZI& model_point = off_scene_model_keypoints->at (clustered_corrs[i][j].index_query);
+            pcl::PointXYZI& scene_point = recog.keypointOut->at (clustered_corrs[i][j].index_match);
+
+            //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
+            viewer.addLine<pcl::PointXYZI, pcl::PointXYZI> (model_point, scene_point, 0, 255, 0, ss_line.str ());
+        }
+    }
+    viewer.spinOnce(10000, false);
+}
+
 int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_node");
     ros::NodeHandle nh;
@@ -64,7 +116,7 @@ int main(int argc, char** argv){
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/juice_carton.pcd", *model);
+    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
 
@@ -89,21 +141,20 @@ int main(int argc, char** argv){
     while (ros::ok())
     {
         cRecog.updateParm(_ns, _ks, _ds, rf_rad_, cg_size_, cg_thresh_);
-        if(newCloud && cMean.cloudQueue.size() < 5){
+        if(cMean.cloudQueue.size() < 100){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
         }else{
             cRecog.modelConstruct(model);
-            
             cMean.meanFilter(*scene_blob, blob.width, blob.height);
-            cRecog.remover(scene_blob, blob.width, blob.height, 0.5, 0.5, *scene);
+            cRecog.remover(scene_blob, blob.width, blob.height, 0.55, 0.55, *scene);
             scene->is_dense = false;
-            
             // Clustering
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
             std::vector<pcl::Correspondences> clustered_corrs;
-            cRecog.cloudHough3D(scene, rototranslations, clustered_corrs);
+            if(!scene->points.size() == 0)cRecog.cloudHough3D(scene, rototranslations, clustered_corrs);
             std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+            if(!rototranslations.size() == 0) visualization(model, scene, rototranslations, clustered_corrs, cRecog);
             for(std::size_t i = 0; i < rototranslations.size(); ++i){
                 std::cout << "\n  Instance " << i+1 << ":" << std::endl;
                 std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
