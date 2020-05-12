@@ -18,11 +18,9 @@ class cloudUtilities
         ~cloudUtilities();
 
         /**
-         * @brief This will take mean of individual points
+         * @brief 
+         * 
          * @param res 
-         * @param width 
-         * @param height 
-         * ToDo: Implementation of voxel grid filter
          */
         void meanFilter(pcl::PointCloud<PointType> &res);
         /**
@@ -35,9 +33,21 @@ class cloudUtilities
          * @param perH 
          * @param res 
          */
-        void outlineRemover(const pcl::PointCloud<PointType> blob, 
+        void outlineRemover(const boost::shared_ptr< const pcl::PointCloud<PointType>> blob, 
                     int width, int height, float perW, float perH,
                     pcl::PointCloud<PointType> &res);
+        /**
+         * @brief 
+         * 
+         * @param groud 
+         * @param raw 
+         * @param tolerence 
+         * @param model 
+         */
+        void modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> groud, 
+                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> raw,
+                                 double tolerence,
+                                 pcl::PointCloud<PointType> &model);
 
 };
 
@@ -49,7 +59,7 @@ cloudUtilities<PointType>::~cloudUtilities(){}
 template <class PointType>
 void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
     if(_queue.isEmpty()) return;
-    typename pcl::PointCloud<PointType>::Ptr tempC;
+    typename pcl::PointCloud<PointType>::Ptr tempC (new pcl::PointCloud<PointType>());
     _queue.dequeue(*tempC);
     int width = tempC->width;
     int height = tempC->height;
@@ -97,7 +107,7 @@ void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
 }
 
 template <class PointType>
-void cloudUtilities<PointType>::outlineRemover(const pcl::PointCloud<PointType> blob, 
+void cloudUtilities<PointType>::outlineRemover(const boost::shared_ptr< const pcl::PointCloud<PointType>> blob, 
                     int width, int height, float perW, float perH,
                     pcl::PointCloud<PointType> &res)
 {
@@ -115,10 +125,10 @@ void cloudUtilities<PointType>::outlineRemover(const pcl::PointCloud<PointType> 
         std::vector<float> tempA;
         for(int j = 0; j < width; j++){
             if((i > hLower & i < hUpper) & (j > wLower & j < wUpper)){
-                tempX.push_back(blob.points[pCounter].x);
-                tempY.push_back(blob.points[pCounter].y);
-                tempZ.push_back(blob.points[pCounter].z);
-                tempA.push_back(blob.points[pCounter].intensity);
+                tempX.push_back(blob->points[pCounter].x);
+                tempY.push_back(blob->points[pCounter].y);
+                tempZ.push_back(blob->points[pCounter].z);
+                tempA.push_back(blob->points[pCounter].intensity);
                 pCounter ++;
             }else pCounter ++;
         }
@@ -136,5 +146,11 @@ void cloudUtilities<PointType>::outlineRemover(const pcl::PointCloud<PointType> 
     res.width = res.points.size();
     res.height = 1;
 }
+
+template <class PointType>
+void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> groud, 
+                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> raw,
+                                 double tolerence,
+                                 pcl::PointCloud<PointType> &model);
 
 #endif  //UTILITIES_H

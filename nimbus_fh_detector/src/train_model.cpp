@@ -20,6 +20,8 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 {
     protected:
         typename pcl::PointCloud<pcl::PointXYZI>::Ptr _cloud;
+        typename pcl::PointCloud<pcl::PointXYZI>::Ptr blob;
+        typename pcl::PointCloud<pcl::PointXYZI>::Ptr blob_removed;
         bool save_point_cloud;
         ros::NodeHandle _nh;
         ros::Subscriber _sub;
@@ -49,12 +51,12 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 
         void Callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
-            pcl::PointCloud<pcl::PointXYZI> blob;
-            pcl::PointCloud<pcl::PointXYZI>::Ptr blob_removed (new pcl::PointCloud<pcl::PointXYZI>());
+            blob.reset(new pcl::PointCloud<pcl::PointXYZI>());
+            blob_removed.reset(new pcl::PointCloud<pcl::PointXYZI>());
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
-            pcl::fromPCLPointCloud2(pcl_pc2, blob);
-            this->outlineRemover(blob, blob.width, blob.height, 0.82, 0.8, *blob_removed);
+            pcl::fromPCLPointCloud2(pcl_pc2, *blob);
+            this->outlineRemover(blob, blob->width, blob->height, 0.825, 0.8, *blob_removed);
             this->_queue.enqueue(*blob_removed);
         }
 
@@ -62,10 +64,19 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
         {
             while(ros::ok())
             {
-                if(this->_queue.size() > 10)
+                unsigned int queue_size = this->_queue.size();
+                if(queue_size > 10)
                 {
                     _cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
                     this->meanFilter(*_cloud);
+                    _cloud->header.frame_id = "detector";
+                    pcl_conversions::toPCL(ros::Time::now(), _cloud->header.stamp);
+                    _pub.publish(_cloud);
+                    if(queue_size > 100){
+                        while(!this->_queue.isEmpty()){
+                            this->_queue.dequeue(*_cloud);
+                        }
+                    }
                 }
                 _staticTrans.sendTransform(_cameraPose);
                 ros::spinOnce();
