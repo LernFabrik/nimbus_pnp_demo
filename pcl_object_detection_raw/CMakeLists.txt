@@ -31,3 +31,6 @@ include_directories(SYSTEM ${HDF5_INCLUDE_DIR})
 add_executable(vfh_detection src/vfh_detection.cpp)
 target_link_libraries(vfh_detection ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5})
 
+add_executable(testing src/vfh_testing.cpp)
+target_link_libraries(testing ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5})
+
