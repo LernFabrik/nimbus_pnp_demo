@@ -4,6 +4,7 @@ project(nimbus_fh_detector)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -70,6 +71,10 @@ add_definitions(${PCL_DEFINITIONS})
 add_executable(nimbus_detector_node src/main.cpp)
 add_dependencies(nimbus_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(nimbus_detector_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(model_training_node src/train_model.cpp)
+add_dependencies(model_training_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(model_training_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 
 #############

@@ -16,36 +16,60 @@
 #include <nimbus_fh_detector/utilities.h>
 
 
-class ModelTraining
+class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 {
     protected:
-        pcl::PointCloud<pcl::PointXYZI>::Ptr _cloud;
+        typename pcl::PointCloud<pcl::PointXYZI>::Ptr _cloud;
         bool save_point_cloud;
         ros::NodeHandle _nh;
         ros::Subscriber _sub;
         ros::Publisher _pub;
-        pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZI>> _queue;
-        cloudUtilities cloudUtil;
+        tf2_ros::StaticTransformBroadcaster _staticTrans;
+        geometry_msgs::TransformStamped _cameraPose;
 
     public: 
         ModelTraining(ros::NodeHandle nh): _nh(nh), 
                                            save_point_cloud(false), 
-                                           _cloud(new pcl::PointCloud<pcl::PointXYZI>()),
-                                           cloudUtil()
+                                           cloudUtilities<pcl::PointXYZI>()
         {
-            _sub = _nh.advertise<sensor_msgs::PointCloud2>("/nimbus/pointcloud", ModelTraining::Callback, this);
+            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10 , boost::bind(&ModelTraining::Callback, this, _1));
+            _pub = _nh.advertise<pcl::PointCloud<pcl::PointXYZI>>("filtered_cloud", 5);
+            _cameraPose.child_frame_id = "detector";
+            _cameraPose.header.frame_id = "world";
+            _cameraPose.transform.translation.x = 0;
+            _cameraPose.transform.translation.y = 0;
+            _cameraPose.transform.translation.z = 1;
+            tf2::Quaternion q;
+            q.setRPY(-1.57, 1.57, 0);
+            _cameraPose.transform.rotation.x = q.x();
+            _cameraPose.transform.rotation.y = q.y();
+            _cameraPose.transform.rotation.z = q.z();
+            _cameraPose.transform.rotation.w = q.w();
         }
 
         void Callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
             pcl::PointCloud<pcl::PointXYZI> blob;
+            pcl::PointCloud<pcl::PointXYZI>::Ptr blob_removed (new pcl::PointCloud<pcl::PointXYZI>());
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, blob);
-            _queue.enqueue(*blob);
-            _cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
-            if(_queue.size() > 10) cloudUtil.meanFilter(_queue, blob.width, blob.height, *_cloud);
-            while(!_queue.isEmpty()) _queue.dequeue(blob);
+            this->outlineRemover(blob, blob.width, blob.height, 0.82, 0.8, *blob_removed);
+            this->_queue.enqueue(*blob_removed);
+        }
+
+        void run()
+        {
+            while(ros::ok())
+            {
+                if(this->_queue.size() > 10)
+                {
+                    _cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
+                    this->meanFilter(*_cloud);
+                }
+                _staticTrans.sendTransform(_cameraPose);
+                ros::spinOnce();
+            }
         }
 };
 
@@ -53,4 +77,13 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "nimbus_model_training_node");
     ros::NodeHandle nh;
+
+    ModelTraining training(nh);
+
+    try{
+        training.run();
+    }catch(ros::Exception e){
+        ROS_ERROR("Runtime error %s", e.what());
+    }
+    return 0;
 }
