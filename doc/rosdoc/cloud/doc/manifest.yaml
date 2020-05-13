@@ -1,0 +1,23 @@
+actions: []
+authors: Vishnu <pras@gma.com>
+brief: ''
+bugtracker: ''
+depends:
+- tf2_geometry_msgs
+- pcl_conversions
+- roscpp
+- pcl_msgs
+- sensor_msgs
+- catkin
+- rospy
+- geometry_msgs
+- tf2
+- pcl_ros
+description: The nimbus_cloud package
+license: TODO
+maintainers: rossy <rossy@todo.todo>
+msgs: []
+package_type: package
+repo_url: ''
+srvs: []
+url: ''

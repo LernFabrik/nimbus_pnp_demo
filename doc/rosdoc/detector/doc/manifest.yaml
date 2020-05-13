@@ -1,0 +1,23 @@
+actions: []
+authors: Vishnuprasad Prachandabhanu <prachandabhanu@iwt-bodensee.de>
+brief: ''
+bugtracker: ''
+depends:
+- tf2_geometry_msgs
+- pcl_conversions
+- roscpp
+- pcl_msgs
+- sensor_msgs
+- catkin
+- rospy
+- geometry_msgs
+- tf2
+- pcl_ros
+description: The nimbus_fh_detector package
+license: MIT
+maintainers: Vishnuprasad Prachandabhanu <prachandabhanu@iwt-bodensee.de>
+msgs: []
+package_type: package
+repo_url: ''
+srvs: []
+url: ''
