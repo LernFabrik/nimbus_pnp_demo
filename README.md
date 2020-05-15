@@ -18,3 +18,6 @@ Use source if you want the script to change the environment in your currently ru
 Answer is copied from [Stack Exchange](https://superuser.com/questions/176783/what-is-the-difference-between-executing-a-bash-script-vs-sourcing-it)
 
 `source nimbus_env.sh`
+
+Read Documentation
+1. [Cloud](https://github.com/prachandabhanu/nimbus_pnp_demo/blob/master/doc/rosdoc/detector/doc/html/index.html)
