@@ -97,7 +97,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                             counter += 1;
                         }else{
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
-                            //this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
+                            this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
                         }
                         ROS_ERROR("Saved");
                     }

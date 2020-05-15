@@ -153,28 +153,36 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
                                  double tolerence,
                                  pcl::PointCloud<PointType> &model)
 {
-    // if(groud->points.size() ! = raw->points.size())){
-    //     ROS_ERROR ("Size of ground truth and raw point cloud is not matching");
-    //     return;
-    // }
-    // typename pcl::PointCloud<pcl::PointXYZI>::Ptr edit_cloud (new pcl::PointCloud<pcl::PointXYZI>());
-    // // Store the difference of z axis values;
-    // std::vector<float> absZ;
-    // for (int i = 0; i < groud->points.size(); i ++){
-    //     if(!std::isnan(tempC->points[i].z))
-    //         absZ.push_back(std::abs(groud->points[i].z - raw->points[i].z));
-    //     else
-    //         absZ.push_back(NAN);
-    // }
+    if(groud->points.size() != raw->points.size()){
+        ROS_ERROR ("Size of ground truth and raw point cloud is not matching");
+        return;
+    }
+    typename pcl::PointCloud<pcl::PointXYZI>::Ptr edit_cloud (new pcl::PointCloud<pcl::PointXYZI>());
+    // Store the difference of z axis values;
+    std::vector<float> absZ;
+    for (int i = 0; i < groud->points.size(); i ++){
+        if(!std::isnan(groud->points[i].z) && !std::isnan(raw->points[i].z))
+            absZ.push_back(std::abs(groud->points[i].z - raw->points[i].z));
+        else
+            absZ.push_back(NAN);
+    }
 
-    // for (int i = 0; i < absZ.size(); i ++){
-    //     if(!std::isnan(absZ[i]) && absZ[i] > tolerence)
-    //     {
-            
-    //     }
-    //     else
-    //         absZ.push_back(NAN);
-    // }
+    for (int i = 0; i < absZ.size(); i ++){
+        pcl::PointXYZI temp;
+        if(!std::isnan(absZ[i]) && absZ[i] > tolerence)
+        {
+            temp.x = raw->points[i].x;
+            temp.y = raw->points[i].y;
+            temp.z = raw->points[i].z;
+            temp.intensity = raw->points[i].intensity;
+        }
+        else{
+            temp.x = NAN;
+            temp.y = NAN;
+            temp.z = NAN;
+            temp.intensity = NAN;
+        }
+    }
 
     
     
