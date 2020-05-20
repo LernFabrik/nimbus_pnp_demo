@@ -3,6 +3,10 @@
 #include <pcl/console/parse.h>
 #include <pcl/console/print.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/gpu/features/features.hpp>
+#include <cuda_runtime.h>
+#include <pcl/cuda/point_types.h>
+#include <pcl/cuda/features/normal_3d.h>
 #include <boost/filesystem.hpp>
 #include <flann/flann.h>
 #include <flann/io/hdf5.h>

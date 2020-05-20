@@ -2,9 +2,16 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 project(object_recognition)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+if(NOT DEFINED CMAKE_CUDA_STANDARD)
+    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+endif()
 
-find_package(PCL 1.10 REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(CUDA_LINK_LIBRARIES_KEYWORD PUBLIC)
+
+find_package(PCL 1.11 REQUIRED)
+find_package(CUDA 10.2 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -30,6 +37,8 @@ include_directories(SYSTEM ${HDF5_INCLUDE_DIR})
 
 add_executable(vfh_detection src/vfh_detection.cpp)
 target_link_libraries(vfh_detection ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5})
+set_property(TARGET vfh_detection 
+             PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 add_executable(testing src/vfh_testing.cpp)
 target_link_libraries(testing ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${FLANN_LIBRARIES} ${HDF5})
