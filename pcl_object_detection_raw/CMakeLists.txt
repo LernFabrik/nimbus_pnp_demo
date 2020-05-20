@@ -8,7 +8,8 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-set(CUDA_LINK_LIBRARIES_KEYWORD PUBLIC)
+add_compile_options(-std=c++11)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 find_package(PCL 1.11 REQUIRED)
 find_package(CUDA 10.2 REQUIRED)

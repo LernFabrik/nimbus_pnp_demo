@@ -11,3 +11,5 @@ cuda_runtime.h: No such file or directory
 * https://cmake.org/cmake/help/latest/module/FindCUDA.html
 * https://devblogs.nvidia.com/building-cuda-applications-cmake/
 
+3. Source file exention should be `.cu`
+* https://github.com/PointCloudLibrary/pcl/issues/3951
