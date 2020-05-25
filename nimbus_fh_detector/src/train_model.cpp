@@ -15,7 +15,7 @@
 #include <std_msgs/Bool.h>
 
 #include <nimbus_fh_detector/utilities.h>
-
+#include <boost/filesystem.hpp>
 
 class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 {
@@ -32,9 +32,10 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
         ros::Publisher _pub;
         tf2_ros::StaticTransformBroadcaster _staticTrans;
         geometry_msgs::TransformStamped _cameraPose;
+        std::string _working_dir;
 
     public: 
-        ModelTraining(ros::NodeHandle nh): _nh(nh), 
+        ModelTraining(ros::NodeHandle nh, std::string work_dir): _nh(nh), 
                                            save_point_cloud(false), 
                                            cloudUtilities<pcl::PointXYZI>()
         {
@@ -72,10 +73,17 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 
         void run()
         {
-            std::string model_name = "box_";
+            std::string model_name = "/box_";
             std::string extention = ".pcd";
             std::string saved_groudtruth;
             int counter = 0;
+            std::stringstream dir;
+            _working_dir = boost::filesystem::current_path().c_str();
+            dir << _working_dir << "/ros_ws/test";
+            boost::filesystem::path test_dir = dir.str();
+            std::cout << "Path: "<< _working_dir.c_str() << std::endl;
+            if(!boost::filesystem::exists(test_dir) && !boost::filesystem::is_directory(test_dir))
+                boost::filesystem::create_directory(test_dir);
             while(ros::ok())
             {
                 unsigned int queue_size = this->_queue.size();
@@ -89,15 +97,18 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                     if(save_point_cloud){
                         save_point_cloud = false;
                         std::stringstream ss;
-                        ss << model_name;
+                        ss << test_dir.c_str() << model_name;
                         if (counter == 0){
-                            ss << "1" << extention;
+                            ss << std::to_string(counter) << extention;
                             saved_groudtruth = ss.str();
                             pcl::io::savePCDFileASCII(ss.str(), *_cloud);
                             counter += 1;
                         }else{
+                            ss << std::to_string(counter) << extention;
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
                             this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
+                            pcl::io::savePCDFileASCII(ss.str(), *_model);
+                            counter += 1;
                         }
                         ROS_ERROR("Saved");
                     }
@@ -123,7 +134,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "nimbus_model_training_node");
     ros::NodeHandle nh;
 
-    ModelTraining training(nh);
+    ModelTraining training(nh, argv[0]);
 
     try{
         training.run();

@@ -66,7 +66,7 @@ class Detector : public cloudUtilities<pcl::PointXYZI>
                 pcl::PointCloud<pcl::PointXYZI>::Ptr model (new pcl::PointCloud<pcl::PointXYZI>());
                 pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/box_0.pcd", *cloud);
                 pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/box_1.pcd", *ground);
-                this->modelFromGroudtruth(ground, cloud, 0.03, *model);
+                this->modelFromGroudtruth(ground, cloud, 0.02, *model);
                 model->header.frame_id = "detector";
                 pcl_conversions::toPCL(ros::Time::now(), model->header.stamp);
                 _pub.publish(model);
@@ -79,6 +79,7 @@ int main(int argc, char** argv){
     ros::init(argc, argv, "nimbus_detector_node");
     ros::NodeHandle nh;
     Detector detector(nh);
+    std::cout << "argv path: " << argv[0] << std::endl;
     try{
         detector.run();
     }catch(ros::Exception e){
