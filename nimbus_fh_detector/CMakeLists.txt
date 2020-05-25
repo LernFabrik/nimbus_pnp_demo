@@ -76,6 +76,10 @@ add_executable(model_training_node src/train_model.cpp)
 add_dependencies(model_training_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(model_training_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(test_training_node src/training_model_test.cpp)
+add_dependencies(test_training_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_training_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 
 #############
 ## Install ##

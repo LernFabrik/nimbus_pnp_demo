@@ -44,8 +44,8 @@ class cloudUtilities
          * @param tolerence 
          * @param model 
          */
-        void modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> groud, 
-                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> raw,
+        void modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> &groud, 
+                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> &raw,
                                  double tolerence,
                                  pcl::PointCloud<PointType> &model);
 
@@ -148,8 +148,8 @@ void cloudUtilities<PointType>::outlineRemover(const boost::shared_ptr< const pc
 }
 
 template <class PointType>
-void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> groud, 
-                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> raw,
+void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< const pcl::PointCloud<PointType>> &groud, 
+                                 const boost::shared_ptr< const pcl::PointCloud<PointType>> &raw,
                                  double tolerence,
                                  pcl::PointCloud<PointType> &model)
 {
@@ -166,7 +166,7 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
         else
             absZ.push_back(NAN);
     }
-
+    
     for (int i = 0; i < absZ.size(); i ++){
         pcl::PointXYZI temp;
         if(!std::isnan(absZ[i]) && absZ[i] > tolerence)
@@ -182,10 +182,9 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
             temp.z = NAN;
             temp.intensity = NAN;
         }
+        edit_cloud->points.push_back(temp);
     }
-
-    
-    
+    pcl::copyPointCloud(*edit_cloud, model);
 }
 
 #endif  //UTILITIES_H

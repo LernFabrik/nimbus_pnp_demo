@@ -18,15 +18,15 @@
 #include <pcl/io/impl/synchronized_queue.hpp>
 
 #include <nimbus_fh_detector/filters.h>
-#include <nimbus_fh_detector/features.h>
+#include <nimbus_fh_detector/utilities.h>
 
 typedef pcl::PointXYZI PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
 
-class Detector : public nimbus::Filters<pcl::PointXYZ>{
+class Detector : public cloudUtilities<pcl::PointXYZI>
+{
     private:
         ros::NodeHandle _nh; 
-        ros::Subscriber _sub;
         ros::Publisher _pub;
         tf2_ros::StaticTransformBroadcaster _staticTrans;
         geometry_msgs::TransformStamped _cameraPose;
@@ -34,10 +34,9 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
         bool _newCloud = false;
         
         pcl::SynchronizedQueue<PointCloud::Ptr> _queue_cloud;
-        nimbus::Features<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> _feature;
         
     public:
-        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<pcl::PointXYZ>(), _feature(nh, 0.01, 0.01, 0.01) 
+        Detector(ros::NodeHandle nh): _nh(nh), cloudUtilities<pcl::PointXYZI>() 
         {
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
 
@@ -62,25 +61,15 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
         {
             while(ros::ok())
             {
-                if(!_queue_cloud.isEmpty())
-                {
-                    PointCloud::Ptr cloud (new PointCloud());
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>());
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr filCloud (new pcl::PointCloud<pcl::PointXYZ>());
-                    while(_queue_cloud.size() > 5) _queue_cloud.dequeue(cloud);
-                    _queue_cloud.dequeue(cloud);
-                    pcl::copyPointCloud(*cloud, *tempCloud);
-                    this->movingLeastSquare(tempCloud, *filCloud);
-                    //_feature.extraction(filCloud);
-
-                    filCloud->header.frame_id = "detector";
-                    pcl_conversions::toPCL(ros::Time::now(), filCloud->header.stamp);
-
-                    _pub.publish(filCloud);
-                    ros::spinOnce();
-                }else{
-                    ros::spinOnce();
-                }
+                PointCloud::Ptr cloud (new PointCloud());
+                pcl::PointCloud<pcl::PointXYZI>::Ptr ground (new pcl::PointCloud<pcl::PointXYZI>());
+                pcl::PointCloud<pcl::PointXYZI>::Ptr model (new pcl::PointCloud<pcl::PointXYZI>());
+                pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/box_0.pcd", *cloud);
+                pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/box_1.pcd", *ground);
+                this->modelFromGroudtruth(ground, cloud, 0.03, *model);
+                model->header.frame_id = "detector";
+                pcl_conversions::toPCL(ros::Time::now(), model->header.stamp);
+                _pub.publish(model);
                 _staticTrans.sendTransform(_cameraPose);
             }
         }
