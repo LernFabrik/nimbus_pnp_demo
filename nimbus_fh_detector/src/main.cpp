@@ -38,7 +38,7 @@ class Detector : public nimbus::Recognition{
     public:
         Detector(ros::NodeHandle nh): _nh(nh),
                                       _util(),
-                                      nimbus::Recognition(nh, "as")
+                                      nimbus::Recognition(nh, "/home/vishnu/ros_ws/test")
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
@@ -67,16 +67,19 @@ class Detector : public nimbus::Recognition{
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
             _cloud->is_dense = false;
-            _util.outlineRemover(blob, blob->width, blob->height, 0.75, 0.75, *_cloud);        
+            _util.outlineRemover(blob, blob->width, blob->height, 0.55, 0.5, *_cloud);
+            _newCloud = true;        
         }
 
         void run()
         {
             this->constructModelParam();
+            ros::spinOnce();
             while(ros::ok())
-            {
-                if(_cloud->points.size() > 0)
+            {  
+                if(_newCloud)
                 {
+                    _newCloud = false;
                     PointCloud::Ptr cloud (new PointCloud());
                     pcl::copyPointCloud(*_cloud, *cloud);
 
@@ -86,6 +89,7 @@ class Detector : public nimbus::Recognition{
                     this->cloudHough3D(cloud, rototranslations, clustered_corrs);
 
                     std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+                    ros::Duration(5).sleep();
                     cloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
 

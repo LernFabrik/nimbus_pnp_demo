@@ -18,8 +18,7 @@ void nimbus::Recognition::constructModelParam()
     _model_description.resize(10);
     _model_board.resize(10);
     // ToDo: Change the fixed number of *.pcd file to for loop
-    std::stringstream model_path;
-    model_path << _path << "/box_";
+    
     for(int i = 0; i < 10; i++)
     {
         _model_normals[i].reset(new pcl::PointCloud<pcl::Normal>());
@@ -28,7 +27,9 @@ void nimbus::Recognition::constructModelParam()
         _model_board[i].reset(new pcl::PointCloud<pcl::ReferenceFrame>());
 
         typename pcl::PointCloud<pcl::PointXYZI>::Ptr blob (new pcl::PointCloud<pcl::PointXYZI>());
-        model_path << std::to_string(i) << ".pcd";
+        std::stringstream model_path;
+        model_path << _path << "/box_";
+        model_path << std::to_string(i+1) << ".pcd";
         pcl::io::loadPCDFile(model_path.str(), *blob);
         _features.extraction(blob);
 
@@ -75,16 +76,21 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
 {
     this->correspondences(blob);
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
-    clusterer.setHoughBinSize (0.017);
-    clusterer.setHoughThreshold (4.0);
-    clusterer.setUseInterpolation (true);
-    clusterer.setUseDistanceWeight (false);
+    for (int i = 0; i < 10; i++)
+    {
+        clusterer.setHoughBinSize (0.017);
+        clusterer.setHoughThreshold (4.0);
+        clusterer.setUseInterpolation (true);
+        clusterer.setUseDistanceWeight (false);
 
-    clusterer.setInputCloud (_model_keypoints[0]);
-    clusterer.setInputRf (_model_board[0]);
-    clusterer.setSceneCloud (_features.keypoints);
-    clusterer.setSceneRf (_features.board);
-    clusterer.setModelSceneCorrespondences (model_scene_corr[0]);
+        clusterer.setInputCloud (_model_keypoints[i]);
+        clusterer.setInputRf (_model_board[i]);
+        clusterer.setSceneCloud (_features.keypoints);
+        clusterer.setSceneRf (_features.board);
+        clusterer.setModelSceneCorrespondences (model_scene_corr[i]);
 
-    clusterer.recognize (rototranslations, clustered_corrs);
+        clusterer.recognize (rototranslations, clustered_corrs);
+        if (rototranslations.size() > 0)
+            break;
+    }
 }
