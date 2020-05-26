@@ -62,7 +62,8 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            this->outlineRemover(blob, blob->width, blob->height, 0.825, 0.8, *blob_removed);
+            this->outlineRemover(blob, blob->width, blob->height, 0.6, 0.55, *blob_removed);
+            blob_removed->is_dense = false;
             this->_queue.enqueue(*blob_removed);
         }
 
@@ -81,7 +82,6 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             _working_dir = boost::filesystem::current_path().c_str();
             dir << _working_dir << "/ros_ws/test";
             boost::filesystem::path test_dir = dir.str();
-            std::cout << "Path: "<< _working_dir.c_str() << std::endl;
             if(!boost::filesystem::exists(test_dir) && !boost::filesystem::is_directory(test_dir))
                 boost::filesystem::create_directory(test_dir);
             while(ros::ok())
@@ -102,15 +102,18 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                             ss << std::to_string(counter) << extention;
                             saved_groudtruth = ss.str();
                             pcl::io::savePCDFileASCII(ss.str(), *_cloud);
+                            ROS_WARN("PCD is save: %s", saved_groudtruth.c_str());
                             counter += 1;
                         }else{
                             ss << std::to_string(counter) << extention;
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
+                            ROS_ERROR("Size of ground: %d and cloud: %d", (int)_ground->points.size(), (int)_cloud->points.size());
                             this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
+                            ROS_ERROR("Model width * height: %d and Point Size: %d", (int)_model->width, (int)_model->points.size());
                             pcl::io::savePCDFileASCII(ss.str(), *_model);
+                            ROS_WARN("PCD is save: %s", ss.str());
                             counter += 1;
                         }
-                        ROS_ERROR("Saved");
                     }
 
                     _cloud->header.frame_id = "detector";

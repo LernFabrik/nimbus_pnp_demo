@@ -184,6 +184,9 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
         }
         edit_cloud->points.push_back(temp);
     }
+    edit_cloud->is_dense = false;
+    edit_cloud->width = absZ.size();
+    edit_cloud->height = 1;
     pcl::copyPointCloud(*edit_cloud, model);
 }
 
