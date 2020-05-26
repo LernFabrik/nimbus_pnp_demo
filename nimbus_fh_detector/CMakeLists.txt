@@ -68,6 +68,10 @@ link_directories(
 add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ library
+add_library(recognition include/nimbus_fh_detector/impl/recognition.cpp)
+add_dependencies(recognition ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(recognition ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 add_executable(nimbus_detector_node src/main.cpp)
 add_dependencies(nimbus_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(nimbus_detector_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
