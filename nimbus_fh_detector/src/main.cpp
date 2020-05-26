@@ -17,13 +17,13 @@
 #include <pcl/filters/filter.h>
 #include <pcl/io/impl/synchronized_queue.hpp>
 
-#include <nimbus_fh_detector/filters.h>
-#include <nimbus_fh_detector/features.h>
+#include <nimbus_fh_detector/utilities.h>
+#include <nimbus_fh_detector/recognition.hpp>
 
 typedef pcl::PointXYZI PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
 
-class Detector : public nimbus::Filters<pcl::PointXYZ>{
+class Detector : public nimbus::Recognition{
     private:
         ros::NodeHandle _nh; 
         ros::Subscriber _sub;
@@ -32,12 +32,13 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
         geometry_msgs::TransformStamped _cameraPose;
         PointCloud::Ptr _cloud;
         bool _newCloud = false;
-        
-        pcl::SynchronizedQueue<PointCloud::Ptr> _queue_cloud;
-        nimbus::Features<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> _feature;
+
+        cloudUtilities<pcl::PointXYZI> _util;
         
     public:
-        Detector(ros::NodeHandle nh): _nh(nh), nimbus::Filters<pcl::PointXYZ>(), _feature(nh, 0.01, 0.01, 0.01) 
+        Detector(ros::NodeHandle nh): _nh(nh),
+                                      _util(),
+                                      nimbus::Recognition(nh, "as")
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
@@ -61,32 +62,34 @@ class Detector : public nimbus::Filters<pcl::PointXYZ>{
         void callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
             _cloud.reset(new PointCloud());
+            pcl::PointCloud<pcl::PointXYZI>::Ptr blob (new pcl::PointCloud<pcl::PointXYZI>());
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
-            pcl::fromPCLPointCloud2(pcl_pc2, *_cloud);
+            pcl::fromPCLPointCloud2(pcl_pc2, *blob);
             _cloud->is_dense = false;
-            _queue_cloud.enqueue(_cloud);          
+            _util.outlineRemover(blob, blob->width, blob->height, 0.75, 0.75, *_cloud);        
         }
 
         void run()
         {
+            this->constructModelParam();
             while(ros::ok())
             {
-                if(!_queue_cloud.isEmpty())
+                if(_cloud->points.size() > 0)
                 {
                     PointCloud::Ptr cloud (new PointCloud());
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>());
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr filCloud (new pcl::PointCloud<pcl::PointXYZ>());
-                    while(_queue_cloud.size() > 5) _queue_cloud.dequeue(cloud);
-                    _queue_cloud.dequeue(cloud);
-                    pcl::copyPointCloud(*cloud, *tempCloud);
-                    this->movingLeastSquare(tempCloud, *filCloud);
-                    //_feature.extraction(filCloud);
+                    pcl::copyPointCloud(*_cloud, *cloud);
 
-                    filCloud->header.frame_id = "detector";
-                    pcl_conversions::toPCL(ros::Time::now(), filCloud->header.stamp);
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
+                    std::vector<pcl::Correspondences> clustered_corrs;
 
-                    _pub.publish(filCloud);
+                    this->cloudHough3D(cloud, rototranslations, clustered_corrs);
+
+                    std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+                    cloud->header.frame_id = "detector";
+                    pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
+
+                    _pub.publish(cloud);
                     ros::spinOnce();
                 }else{
                     ros::spinOnce();
