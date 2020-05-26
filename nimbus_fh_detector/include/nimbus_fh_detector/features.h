@@ -149,7 +149,7 @@ template <class PointType, class NormalType, class DescriptorType>
 void nimbus::Features<PointType, NormalType, DescriptorType>::extraction(const PointCloudTypeConstPtr blob)
 {
     descriptor.reset(new pcl::PointCloud<DescriptorType>());
-    this->cloudFPFHEstimation(blob, *descriptor);
+    this->cloudSHOTEstimationOMP(blob, *descriptor);
     // std::string sel = boost::typeindex::type_id<DescriptorType>().pretty_name();  //typeid(DescriptorType).name();
     // switch(sel.c_str()){
     //     case "pcl::FPFHSignature33":
