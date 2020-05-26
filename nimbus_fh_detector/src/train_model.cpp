@@ -107,9 +107,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                         }else{
                             ss << std::to_string(counter) << extention;
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
-                            ROS_ERROR("Size of ground: %d and cloud: %d", (int)_ground->points.size(), (int)_cloud->points.size());
                             this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
-                            ROS_ERROR("Model width * height: %d and Point Size: %d", (int)_model->width, (int)_model->points.size());
                             pcl::io::savePCDFileASCII(ss.str(), *_model);
                             ROS_WARN("PCD is save: %s", ss.str());
                             counter += 1;
