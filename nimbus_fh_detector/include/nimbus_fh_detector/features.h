@@ -53,6 +53,7 @@ namespace nimbus{
             typename pcl::PointCloud<PointType>::Ptr keypoints;
             typename pcl::PointCloud<NormalType>::Ptr normals;
             typename pcl::PointCloud<DescriptorType>::Ptr descriptor;
+            typename pcl::PointCloud<pcl::ReferenceFrame>::Ptr board;
             //Functions
             void keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res);
             /**
@@ -67,6 +68,7 @@ namespace nimbus{
              */
             void cloudFPFHEstimation(const PointCloudTypeConstPtr blob, pcl::PointCloud<DescriptorType> &descriptor);
             void cloudSHOTEstimationOMP(const PointCloudTypeConstPtr blob, pcl::PointCloud<DescriptorType> &descriptor);
+            void cloudBoardLocalRefeFrame(const PointCloudTypeConstPtr blob);
             void extraction(const PointCloudTypeConstPtr blob);
             
     };
@@ -146,10 +148,24 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::cloudSHOTEstimatio
 }
 
 template <class PointType, class NormalType, class DescriptorType>
+void nimbus::Features<PointType, NormalType, DescriptorType>::cloudBoardLocalRefeFrame(const PointCloudTypeConstPtr blob)
+{
+    pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
+    rf_est.setFindHoles(true);
+    rf_est.setRadiusSearch(0.01);
+    rf_est.setInputCloud(this->keypoints);
+    rf_est.setInputNormals(this->normals);
+    rf_est.setSearchSurface(blob);
+    board.reset(new pcl::PointCloud<pcl::ReferenceFrame>());
+    rf_est.compute(*board);
+}
+
+template <class PointType, class NormalType, class DescriptorType>
 void nimbus::Features<PointType, NormalType, DescriptorType>::extraction(const PointCloudTypeConstPtr blob)
 {
     descriptor.reset(new pcl::PointCloud<DescriptorType>());
     this->cloudSHOTEstimationOMP(blob, *descriptor);
+    this->cloudBoardLocalRefeFrame(blob);
     // std::string sel = boost::typeindex::type_id<DescriptorType>().pretty_name();  //typeid(DescriptorType).name();
     // switch(sel.c_str()){
     //     case "pcl::FPFHSignature33":
