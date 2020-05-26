@@ -19,7 +19,7 @@ void nimbus::Recognition::constructModelParam()
     _model_board.resize(10);
     // ToDo: Change the fixed number of *.pcd file to for loop
     std::stringstream model_path;
-    model_path << "/box_";
+    model_path << _path << "/box_";
     for(int i = 0; i < 10; i++)
     {
         _model_normals[i].reset(new pcl::PointCloud<pcl::Normal>());
