@@ -62,7 +62,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            this->outlineRemover(blob, blob->width, blob->height, 0.65, 0.55, *blob_removed);
+            this->outlineRemover(blob, blob->width, blob->height, 0.65, 0.65, *blob_removed);
             blob_removed->is_dense = false;
             this->_queue.enqueue(*blob_removed);
         }
@@ -93,6 +93,8 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                     _ground.reset(new pcl::PointCloud<pcl::PointXYZI>());
                     _model.reset(new pcl::PointCloud<pcl::PointXYZI>());
                     this->meanFilter(*_cloud);
+
+                    ROS_INFO("Ready to save");
 
                     if(save_point_cloud){
                         save_point_cloud = false;
