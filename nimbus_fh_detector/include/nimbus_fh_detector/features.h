@@ -152,7 +152,7 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::cloudBoardLocalRef
 {
     pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
     rf_est.setFindHoles(true);
-    rf_est.setRadiusSearch(0.01);
+    rf_est.setRadiusSearch(0.02);
     rf_est.setInputCloud(this->keypoints);
     rf_est.setInputNormals(this->normals);
     rf_est.setSearchSurface(blob);

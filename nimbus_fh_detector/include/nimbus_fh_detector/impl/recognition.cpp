@@ -5,7 +5,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/recognition/cg/hough_3d.h>
 
-nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.01, 0.01, 0.01)
+nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.02, 0.02, 0.02)
 {
 
 }
@@ -66,7 +66,7 @@ void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZI>:
                 model_scene_corr[j]->push_back(corr);
             }
         }
-        std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
+        // std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
     }
 }
 
@@ -79,7 +79,7 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
     for (int i = 0; i < 10; i++)
     {
         clusterer.setHoughBinSize (0.017);
-        clusterer.setHoughThreshold (4.0);
+        clusterer.setHoughThreshold (2.2);
         clusterer.setUseInterpolation (true);
         clusterer.setUseDistanceWeight (false);
 
@@ -87,11 +87,12 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         clusterer.setInputRf (_model_board[i]);
         clusterer.setSceneCloud (_features.keypoints);
         clusterer.setSceneRf (_features.board);
-        std::cout << "Correspondences found at: " << i << "= " << model_scene_corr[i]->size () << std::endl;
         clusterer.setModelSceneCorrespondences (model_scene_corr[i]);
 
         clusterer.recognize (rototranslations, clustered_corrs);
-        if (rototranslations.size() > 0)
+        if (rototranslations.size() > 0){
+            std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
             break;
+        }
     }
 }
