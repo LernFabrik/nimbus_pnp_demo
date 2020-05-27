@@ -34,6 +34,8 @@ class Detector : public nimbus::Recognition{
         bool _newCloud = false;
 
         cloudUtilities<pcl::PointXYZI> _util;
+        geometry_msgs::Transform pose;
+        ros::Publisher pubPose;
         
     public:
         Detector(ros::NodeHandle nh): _nh(nh),
@@ -42,6 +44,7 @@ class Detector : public nimbus::Recognition{
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
+            pubPose = nh.advertise<geometry_msgs::Transform>("detected_pose", 5);
 
             _cameraPose.child_frame_id = "detector";
             _cameraPose.header.frame_id = "world";
@@ -89,7 +92,29 @@ class Detector : public nimbus::Recognition{
                     this->cloudHough3D(cloud, rototranslations, clustered_corrs);
 
                     std::cout << "Model instances found: " << rototranslations.size () << std::endl;
-                    ros::Duration(5).sleep();
+
+                    // Pub data
+                    for(std::size_t i = 0; i < rototranslations.size(); ++i){
+                        std::cout << "\n  Instance " << i+1 << ":" << std::endl;
+                        std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
+                        //std::cout << "        Scale: " << scale[i] << std::endl;
+
+                        Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0,0);
+                        Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
+                        tf2::Matrix3x3 mat(rotation (0,0), rotation (0,1), rotation (0,2),
+                                        rotation (1,0), rotation (1,1), rotation (1,2),
+                                        rotation (2,0), rotation (2,1), rotation (2,2));
+                        tf2Scalar roll, pitch, yaw;
+                        mat.getEulerYPR(yaw, pitch, roll);
+                        tf2::Quaternion q;
+                        q.setRPY(roll, pitch, yaw);
+                        pose.translation.x = translation(0);
+                        pose.translation.y = translation(1);
+                        pose.translation.z = translation(2);
+                        pose.rotation = tf2::toMsg(q);
+                        pubPose.publish(pose);
+                    }
+                    
                     cloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
 
