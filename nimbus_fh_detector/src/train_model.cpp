@@ -62,7 +62,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            this->outlineRemover(blob, blob->width, blob->height, 0.6, 0.55, *blob_removed);
+            this->outlineRemover(blob, blob->width, blob->height, 0.65, 0.55, *blob_removed);
             blob_removed->is_dense = false;
             this->_queue.enqueue(*blob_removed);
         }
@@ -102,14 +102,15 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                             ss << std::to_string(counter) << extention;
                             saved_groudtruth = ss.str();
                             pcl::io::savePCDFileASCII(ss.str(), *_cloud);
-                            ROS_WARN("PCD is save: %s", saved_groudtruth.c_str());
+                            ROS_WARN("Saved PCD file path: %s", saved_groudtruth.c_str());
                             counter += 1;
                         }else{
                             ss << std::to_string(counter) << extention;
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
                             this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
                             pcl::io::savePCDFileASCII(ss.str(), *_model);
-                            ROS_WARN("PCD is save: %s", ss.str());
+                            std::string saved_model_path = ss.str();
+                            ROS_WARN("Saved PCD file path: %s", saved_model_path.c_str());
                             counter += 1;
                         }
                     }

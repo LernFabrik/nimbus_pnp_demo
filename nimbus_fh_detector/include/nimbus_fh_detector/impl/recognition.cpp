@@ -43,15 +43,14 @@ void nimbus::Recognition::constructModelParam()
 void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob)
 {
     // Call model contructor before this.
-    
     _features.extraction(blob);
     model_scene_corr.resize(_model_description.size());
-    for(int i; i < _model_description.size(); i++)
+    for(int j = 0; j < _model_description.size(); j++)
     {
-        model_scene_corr[i].reset(new pcl::Correspondences());
+        model_scene_corr[j].reset(new pcl::Correspondences());
         pcl::KdTreeFLANN<pcl::SHOT352> match_search;
-        match_search.setInputCloud(_model_description[i]);
-        for(std::size_t i; i < _features.descriptor->size(); i++)
+        match_search.setInputCloud(_model_description[j]);
+        for(std::size_t i = 0; i < _features.descriptor->size(); i++)
         {
             std::vector<int> neigh_indices(1);
             std::vector<float> neigh_sqrt_distance(1);
@@ -64,9 +63,10 @@ void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZI>:
             if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.25f)
             {
                 pcl::Correspondence corr(neigh_indices[0], static_cast<int> (i), neigh_sqrt_distance[0]);
-                model_scene_corr[i]->push_back(corr);
+                model_scene_corr[j]->push_back(corr);
             }
         }
+        std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
     }
 }
 
@@ -87,6 +87,7 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         clusterer.setInputRf (_model_board[i]);
         clusterer.setSceneCloud (_features.keypoints);
         clusterer.setSceneRf (_features.board);
+        std::cout << "Correspondences found at: " << i << "= " << model_scene_corr[i]->size () << std::endl;
         clusterer.setModelSceneCorrespondences (model_scene_corr[i]);
 
         clusterer.recognize (rototranslations, clustered_corrs);
