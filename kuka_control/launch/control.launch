@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="iiwa_pnp_node" pkg="kuka_control" type="pnp_node" output="screen" ns="iiwa"/>
+</launch>
