@@ -4,10 +4,11 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
-#include <geometry_msgs/Transform.h>
 #include <dynamic_reconfigure/server.h>
 
 #include <pcl_ros/point_cloud.h>
@@ -28,13 +29,14 @@ class Detector : public nimbus::Recognition{
         ros::NodeHandle _nh; 
         ros::Subscriber _sub;
         ros::Publisher _pub;
-        tf2_ros::StaticTransformBroadcaster _staticTrans;
-        geometry_msgs::TransformStamped _cameraPose;
         PointCloud::Ptr _cloud;
         bool _newCloud = false;
 
         cloudUtilities<pcl::PointXYZI> _util;
-        geometry_msgs::Transform pose;
+        geometry_msgs::TransformStamped pose;
+        geometry_msgs::TransformStamped camera;
+        tf2_ros::TransformBroadcaster tfb;
+        tf2_ros::StaticTransformBroadcaster staticTF;
         ros::Publisher pubPose;
         
     public:
@@ -44,20 +46,16 @@ class Detector : public nimbus::Recognition{
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
-            pubPose = nh.advertise<geometry_msgs::Transform>("detected_pose", 5);
-
-            _cameraPose.child_frame_id = "detector";
-            _cameraPose.header.frame_id = "world";
-            _cameraPose.transform.translation.x = 0;
-            _cameraPose.transform.translation.y = 0;
-            _cameraPose.transform.translation.z = 1;
-            tf2::Quaternion q;
-            q.setRPY(-1.57, 1.57, 0);
-            _cameraPose.transform.rotation.x = q.x();
-            _cameraPose.transform.rotation.y = q.y();
-            _cameraPose.transform.rotation.z = q.z();
-            _cameraPose.transform.rotation.w = q.w();
-            
+            pubPose = nh.advertise<geometry_msgs::TransformStamped>("detected_pose", 5);
+            camera.header.frame_id = "iiwa_link_0";
+            camera.child_frame_id = "camera";
+            camera.transform.translation.x = 0.9;
+            camera.transform.translation.y = 0.1;
+            camera.transform.translation.z = 0.79;
+            camera.transform.rotation.x = -0.6977124;
+            camera.transform.rotation.y = -0.6977124;
+            camera.transform.rotation.z = 0.1148801;
+            camera.transform.rotation.w = 0.1148801;
         }
 
         ~Detector(){}
@@ -108,22 +106,30 @@ class Detector : public nimbus::Recognition{
                         mat.getEulerYPR(yaw, pitch, roll);
                         tf2::Quaternion q;
                         q.setRPY(roll, pitch, yaw);
-                        pose.translation.x = translation(0);
-                        pose.translation.y = translation(1);
-                        pose.translation.z = translation(2);
-                        pose.rotation = tf2::toMsg(q);
+                        pose.header.frame_id = "camera";
+                        pose.child_frame_id = "object";
+                        pose.header.stamp = ros::Time::now();
+                        pose.transform.translation.x = translation(0);
+                        pose.transform.translation.y = translation(1);
+                        pose.transform.translation.z = translation(2);
+                        pose.transform.rotation = tf2::toMsg(q);
                         pubPose.publish(pose);
+                        tfb.sendTransform(pose);
+                        camera.header.stamp = ros::Time::now();
+                        staticTF.sendTransform(camera);
                     }
                     
-                    cloud->header.frame_id = "detector";
+                    cloud->header.frame_id = "camera";
                     pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
-
                     _pub.publish(cloud);
                     ros::spinOnce();
+                    camera.header.stamp = ros::Time::now();
+                    staticTF.sendTransform(camera);
                 }else{
+                    camera.header.stamp = ros::Time::now();
+                    staticTF.sendTransform(camera);
                     ros::spinOnce();
                 }
-                _staticTrans.sendTransform(_cameraPose);
             }
         }
 };
