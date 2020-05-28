@@ -35,7 +35,7 @@ void nimbus::cloudRecognition<PointType, NormalType>::modelConstruct(const pcl::
     mData.keypoint = this->keypointOut;
     mData.descriptor = this->shotOut;
     ROS_ERROR("Model decriptor size %d", (int)mData.descriptor->points.size());
-    ros::Duration(5);
+    //ros::Duration(5).sleep();
     mData.blRefence = this->referenceOut;
 }
 

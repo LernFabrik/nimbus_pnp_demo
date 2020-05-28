@@ -116,7 +116,7 @@ int main(int argc, char** argv){
     static tf2_ros::StaticTransformBroadcaster staticTrans;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nim_ws/src/nimbus_cloud/test/model1.pcd", *model);
+    pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/model1.pcd", *model);
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene_blob (new pcl::PointCloud<pcl::PointXYZI>());
 
@@ -141,19 +141,20 @@ int main(int argc, char** argv){
     while (ros::ok())
     {
         cRecog.updateParm(_ns, _ks, _ds, rf_rad_, cg_size_, cg_thresh_);
-        if(cMean.cloudQueue.size() < 100){
+        if(cMean.cloudQueue.size() < 10){
             cMean.cloudQueue.enqueue(blob);
             newCloud = false;
         }else{
             cRecog.modelConstruct(model);
             cMean.meanFilter(*scene_blob, blob.width, blob.height);
-            cRecog.remover(scene_blob, blob.width, blob.height, 0.55, 0.55, *scene);
+            cRecog.remover(scene_blob, blob.width, blob.height, 0.5, 0.5, *scene);
             scene->is_dense = false;
             // Clustering
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
             std::vector<pcl::Correspondences> clustered_corrs;
             if(!scene->points.size() == 0)cRecog.cloudHough3D(scene, rototranslations, clustered_corrs);
             std::cout << "Model instances found: " << rototranslations.size () << std::endl;
+            ros::Duration(5).sleep();
             if(!rototranslations.size() == 0) visualization(model, scene, rototranslations, clustered_corrs, cRecog);
             for(std::size_t i = 0; i < rototranslations.size(); ++i){
                 std::cout << "\n  Instance " << i+1 << ":" << std::endl;
