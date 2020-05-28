@@ -18,6 +18,7 @@
 
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Transform.h>
@@ -106,14 +107,14 @@ int main(int argc, char** argv){
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe<PointCloud>("/nimbus/pointcloud", 10, callback);
     ros::Publisher pub = nh.advertise<PointCloud>("filtered_cloud", 5);
-    ros::Publisher pubPose = nh.advertise<geometry_msgs::Transform>("pose_detection", 5);
+    ros::Publisher pubPose = nh.advertise<geometry_msgs::TransformStamped>("pose_detection", 5);
 
     dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig> server;
     dynamic_reconfigure::Server<nimbus_cloud::searchRadiusConfig>::CallbackType dF;
     dF = boost::bind(&dynamicCallback, _1, _2);
     server.setCallback(dF);
 
-    static tf2_ros::StaticTransformBroadcaster staticTrans;
+    tf2_ros::TransformBroadcaster tfb;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr model(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::io::loadPCDFile("/home/vishnu/ros_ws/catkin_nimbus_work/src/nimbus_cloud/test/model1.pcd", *model);
@@ -123,20 +124,7 @@ int main(int argc, char** argv){
     cloudMean<pcl::PointXYZI> cMean(nh);
     nimbus::cloudRecognition<pcl::PointXYZI, pcl::Normal> cRecog(nh);
 
-    geometry_msgs::TransformStamped cameraPose;
-    cameraPose.child_frame_id = "detection";
-    cameraPose.header.frame_id = "world";
-    cameraPose.transform.translation.x = 0;
-    cameraPose.transform.translation.y = 0;
-    cameraPose.transform.translation.z = 1;
-    tf2::Quaternion q;
-    q.setRPY(-1.57, 1.57, 0);
-    cameraPose.transform.rotation.x = q.x();
-    cameraPose.transform.rotation.y = q.y();
-    cameraPose.transform.rotation.z = q.z();
-    cameraPose.transform.rotation.w = q.w();
-
-    geometry_msgs::Transform pose;
+    geometry_msgs::TransformStamped pose;
 
     while (ros::ok())
     {
@@ -154,7 +142,7 @@ int main(int argc, char** argv){
             std::vector<pcl::Correspondences> clustered_corrs;
             if(!scene->points.size() == 0)cRecog.cloudHough3D(scene, rototranslations, clustered_corrs);
             std::cout << "Model instances found: " << rototranslations.size () << std::endl;
-            ros::Duration(5).sleep();
+            //ros::Duration(5).sleep();
             if(!rototranslations.size() == 0) visualization(model, scene, rototranslations, clustered_corrs, cRecog);
             for(std::size_t i = 0; i < rototranslations.size(); ++i){
                 std::cout << "\n  Instance " << i+1 << ":" << std::endl;
@@ -170,11 +158,15 @@ int main(int argc, char** argv){
                 mat.getEulerYPR(yaw, pitch, roll);
                 tf2::Quaternion q;
                 q.setRPY(roll, pitch, yaw);
-                pose.translation.x = translation(0);
-                pose.translation.y = translation(1);
-                pose.translation.z = translation(2);
-                pose.rotation = tf2::toMsg(q);
+                pose.header.frame_id = "nimbus";
+                pose.child_frame_id = "object";
+                pose.header.stamp = ros::Time::now();
+                pose.transform.translation.x = translation(0);
+                pose.transform.translation.y = translation(1);
+                pose.transform.translation.z = translation(2);
+                pose.transform.rotation = tf2::toMsg(q);
                 pubPose.publish(pose);
+                tfb.sendTransform(pose);
             }
             scene->header.frame_id= "detection";
             pcl_conversions::toPCL(ros::Time::now(), scene->header.stamp);
@@ -182,8 +174,6 @@ int main(int argc, char** argv){
             scene.reset(new pcl::PointCloud<pcl::PointXYZI>());
             scene_blob.reset(new pcl::PointCloud<pcl::PointXYZI>());
         }
-        cameraPose.header.stamp = ros::Time::now();
-        staticTrans.sendTransform(cameraPose);
         ros::spinOnce();
     }
     
