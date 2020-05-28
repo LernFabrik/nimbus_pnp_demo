@@ -5,7 +5,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/recognition/cg/hough_3d.h>
 
-nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.02, 0.02, 0.02)
+nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.015, 0.015, 0.015)
 {
 
 }
@@ -78,8 +78,8 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
     for (int i = 0; i < 10; i++)
     {
-        clusterer.setHoughBinSize (0.017);
-        clusterer.setHoughThreshold (2.2);
+        clusterer.setHoughBinSize (0.02);
+        clusterer.setHoughThreshold (2.5);
         clusterer.setUseInterpolation (true);
         clusterer.setUseDistanceWeight (false);
 
