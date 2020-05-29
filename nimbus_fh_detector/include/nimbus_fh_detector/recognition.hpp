@@ -22,6 +22,7 @@ namespace nimbus{
             std::string _path;
             ros::NodeHandle _nh;
         protected:
+            std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> _model;
             std::vector<pcl::PointCloud<pcl::Normal>::Ptr> _model_normals;
             std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> _model_keypoints;
             std::vector<pcl::PointCloud<pcl::SHOT352>::Ptr> _model_description;
@@ -37,6 +38,10 @@ namespace nimbus{
             void cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
                                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &rototranslations, 
                                 std::vector<pcl::Correspondences> &clustered_corrs);
+            void visualization (const int num, 
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr  scene,
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
+                    std::vector<pcl::Correspondences> clustered_corrs);
     };
 }
 #endif  //UTILITIES_H

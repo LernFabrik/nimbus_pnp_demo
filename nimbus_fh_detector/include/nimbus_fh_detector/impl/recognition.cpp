@@ -4,6 +4,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.015, 0.015, 0.015)
 {
@@ -21,6 +22,7 @@ void nimbus::Recognition::constructModelParam()
     
     for(int i = 0; i < 10; i++)
     {
+        _model[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
         _model_normals[i].reset(new pcl::PointCloud<pcl::Normal>());
         _model_keypoints[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
         _model_description[i].reset(new pcl::PointCloud<pcl::SHOT352>());
@@ -31,6 +33,7 @@ void nimbus::Recognition::constructModelParam()
         model_path << _path << "/box_";
         model_path << std::to_string(i+1) << ".pcd";
         pcl::io::loadPCDFile(model_path.str(), *blob);
+        pcl::copyPointCloud(*blob, *_model[i]);
         _features.extraction(blob);
 
         _model_keypoints[i] = _features.keypoints;
@@ -74,7 +77,9 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &rototranslations, 
                                        std::vector<pcl::Correspondences> &clustered_corrs)
 {
-    this->correspondences(blob);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::copyPointCloud(*blob, *cloud);
+    this->correspondences(cloud);
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
     for (int i = 0; i < 10; i++)
     {
@@ -92,7 +97,58 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         clusterer.recognize (rototranslations, clustered_corrs);
         if (rototranslations.size() > 0){
             std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
+            visualization(i, cloud, rototranslations, clustered_corrs);
             break;
         }
     }
+}
+
+void nimbus::Recognition::visualization (const int num, 
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr  scene,
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
+                    std::vector<pcl::Correspondences> clustered_corrs){
+    pcl::visualization::PCLVisualizer viewer("Correspondence");
+    viewer.addPointCloud<pcl::PointXYZI> (scene, "scene_cloud");
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZI> ());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZI> ());
+
+    pcl::transformPointCloud(*_model[num], *off_scene_model, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+    pcl::transformPointCloud (*_model_keypoints[num], *off_scene_model_keypoints, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
+    viewer.addPointCloud (off_scene_model, off_scene_model_color_handler, "off_scene_model");
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> scene_keypoints_color_handler (_features.keypoints, 0, 0, 255);
+    viewer.addPointCloud (_features.keypoints, scene_keypoints_color_handler, "scene_keypoints");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "scene_keypoints");
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> off_scene_model_keypoints_color_handler (off_scene_model_keypoints, 0, 0, 255);
+    viewer.addPointCloud (off_scene_model_keypoints, off_scene_model_keypoints_color_handler, "off_scene_model_keypoints");
+    viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "off_scene_model_keypoints");
+
+    for(std::size_t i = 0; i < rototranslations.size(); i++)
+    {
+        pcl::PointCloud<pcl::PointXYZI>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::transformPointCloud (*_model[num], *rotated_model, rototranslations[i]);
+
+        std::stringstream ss_cloud;
+        ss_cloud << "instance" << i;
+
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> rotated_model_color_handler (rotated_model, 255, 0, 0);
+        viewer.addPointCloud (rotated_model, rotated_model_color_handler, ss_cloud.str ());
+
+        for (std::size_t j = 0; j < clustered_corrs[i].size (); ++j)
+        {
+            std::stringstream ss_line;
+            ss_line << "correspondence_line" << i << "_" << j;
+            pcl::PointXYZI& model_point = off_scene_model_keypoints->at (clustered_corrs[i][j].index_query);
+            pcl::PointXYZI& scene_point = _features.keypoints->at (clustered_corrs[i][j].index_match);
+
+            //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
+            viewer.addLine<pcl::PointXYZI, pcl::PointXYZI> (model_point, scene_point, 0, 255, 0, ss_line.str ());
+        }
+    }
+    viewer.spinOnce(10000, false);
+    ros::Duration(10).sleep();
 }
