@@ -104,6 +104,7 @@ void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
         }
         res.points.push_back(temPoint);
     }
+    res.is_dense = false;
 }
 
 template <class PointType>

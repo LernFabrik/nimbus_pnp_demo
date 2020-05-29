@@ -62,7 +62,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            this->outlineRemover(blob, blob->width, blob->height, 0.65, 0.65, *blob_removed);
+            this->outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *blob_removed);
             blob_removed->is_dense = false;
             this->_queue.enqueue(*blob_removed);
         }
@@ -87,7 +87,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
             while(ros::ok())
             {
                 unsigned int queue_size = this->_queue.size();
-                if(queue_size > 10)
+                if(queue_size > 20)
                 {
                     _cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
                     _ground.reset(new pcl::PointCloud<pcl::PointXYZI>());

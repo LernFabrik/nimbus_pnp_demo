@@ -14,6 +14,7 @@ nimbus::Recognition::~Recognition(){}
 
 void nimbus::Recognition::constructModelParam()
 {
+    _model.resize(10);
     _model_normals.resize(10);
     _model_keypoints.resize(10);
     _model_description.resize(10);
@@ -83,8 +84,8 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
     for (int i = 0; i < 10; i++)
     {
-        clusterer.setHoughBinSize (0.02);
-        clusterer.setHoughThreshold (2.5);
+        clusterer.setHoughBinSize (0.015);
+        clusterer.setHoughThreshold (3.0);
         clusterer.setUseInterpolation (true);
         clusterer.setUseDistanceWeight (false);
 
@@ -97,7 +98,7 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         clusterer.recognize (rototranslations, clustered_corrs);
         if (rototranslations.size() > 0){
             std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
-            visualization(i, cloud, rototranslations, clustered_corrs);
+            // visualization(i, cloud, rototranslations, clustered_corrs);
             break;
         }
     }
@@ -150,5 +151,4 @@ void nimbus::Recognition::visualization (const int num,
         }
     }
     viewer.spinOnce(10000, false);
-    ros::Duration(10).sleep();
 }
