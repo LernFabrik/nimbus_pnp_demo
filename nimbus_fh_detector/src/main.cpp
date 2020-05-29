@@ -68,12 +68,13 @@ class Detector : public nimbus::Recognition{
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
             _cloud->is_dense = false;
-            _util.outlineRemover(blob, blob->width, blob->height, 0.55, 0.5, *_cloud);
+            _util.outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *_cloud);
+            _util._queue.enqueue(*_cloud);
             _newCloud = true;        
         }
 
         void run()
-        {
+        {   
             this->constructModelParam();
             ros::spinOnce();
             while(ros::ok())
@@ -81,13 +82,19 @@ class Detector : public nimbus::Recognition{
                 if(_newCloud)
                 {
                     _newCloud = false;
-                    PointCloud::Ptr cloud (new PointCloud());
-                    pcl::copyPointCloud(*_cloud, *cloud);
+                    PointCloud::Ptr blob (new PointCloud());
 
+                    int queue_size = _util._queue.size();
+                    while (!(queue_size > 5) ){
+                        queue_size = _util._queue.size();
+                        ros::spinOnce();
+                    }
+                    _util.meanFilter(*blob);
+                    
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
                     std::vector<pcl::Correspondences> clustered_corrs;
 
-                    this->cloudHough3D(cloud, rototranslations, clustered_corrs);
+                    this->cloudHough3D(blob, rototranslations, clustered_corrs);
 
                     std::cout << "Model instances found: " << rototranslations.size () << std::endl;
 
@@ -106,6 +113,8 @@ class Detector : public nimbus::Recognition{
                         mat.getEulerYPR(yaw, pitch, roll);
                         tf2::Quaternion q;
                         q.setRPY(roll, pitch, yaw);
+                         ROS_WARN("Position X: %f, Y: %f Z: %f", (float)translation(0), (float)translation(1), (float)translation(2));
+                        ROS_WARN("Rotation Roll: %f, Pitch: %f yaw: %f", (float)roll * (180 / M_PI), (float)pitch * (180 / M_PI), (float)yaw * (180 / M_PI));
                         pose.header.frame_id = "camera";
                         pose.child_frame_id = "object";
                         pose.header.stamp = ros::Time::now();
@@ -117,11 +126,12 @@ class Detector : public nimbus::Recognition{
                         tfb.sendTransform(pose);
                         camera.header.stamp = ros::Time::now();
                         staticTF.sendTransform(camera);
+                        // ros::Duration(10).sleep();
                     }
-                    
-                    cloud->header.frame_id = "camera";
-                    pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
-                    _pub.publish(cloud);
+                    ros::Duration(2).sleep();
+                    blob->header.frame_id = "camera";
+                    pcl_conversions::toPCL(ros::Time::now(), blob->header.stamp);
+                    _pub.publish(blob);
                     ros::spinOnce();
                     camera.header.stamp = ros::Time::now();
                     staticTF.sendTransform(camera);
