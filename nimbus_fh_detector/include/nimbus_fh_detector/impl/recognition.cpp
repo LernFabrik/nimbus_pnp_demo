@@ -4,6 +4,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/recognition/hv/hv_go.h>
+#include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.015, 0.015, 0.015)
@@ -81,6 +83,11 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>());
     pcl::copyPointCloud(*blob, *cloud);
     this->correspondences(cloud);
+
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> instances;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > trasformations;
+    std::vector<pcl::Correspondences> clusters;
+
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
     for (int i = 0; i < 10; i++)
     {
@@ -98,10 +105,72 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         clusterer.recognize (rototranslations, clustered_corrs);
         if (rototranslations.size() > 0){
             std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
-            // visualization(i, cloud, rototranslations, clustered_corrs);
-            break;
+            for(std::size_t i = 0; i < rototranslations.size(); ++i)
+            {
+                pcl::PointCloud<pcl::PointXYZI>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZI>());
+                pcl::transformPointCloud(*_model[i], *rotated_model, rototranslations[i]);
+                instances.push_back(rotated_model);
+                trasformations.push_back(rototranslations[i]);
+                clusters.push_back(clustered_corrs[i]);
+            }
         }
     }
+    this->registrationICP(instances, cloud, rototranslations, clustered_corrs);
+}
+
+void nimbus::Recognition::registrationICP (const std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> instances,
+                                           const pcl::PointCloud<pcl::PointXYZI>::ConstPtr scene,
+                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations, 
+                                           std::vector<pcl::Correspondences> clustered_corrs)
+{
+    ///////// ICP ////////////
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> rototransList;
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> registered_instances;
+    for(std::size_t i = 0; i < rototranslations.size(); ++i)
+    {
+        Eigen::Matrix4f icp_tf;
+        Eigen::Matrix4f icp_final_tf;
+        pcl::IterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> icp;
+        icp.setMaximumIterations(5);
+        icp.setMaxCorrespondenceDistance(0.025f);
+        icp.setTransformationEpsilon(1e-7);
+        icp.setInputTarget(scene);
+        icp.setInputSource(instances[i]);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr registered (new pcl::PointCloud<pcl::PointXYZI>());
+        icp.align(*registered);
+
+        registered_instances.push_back(registered);
+        icp_tf = icp.getFinalTransformation();
+        // ToDo Why?
+        icp_final_tf = icp_tf * rototranslations[i];
+        if(icp.hasConverged()) std::cout << "!Alligned!" << std::endl;
+        else std::cout << "!Not Alligned!" << std::endl;
+        rototransList.push_back(icp_final_tf);
+    }
+
+}
+
+void nimbus::Recognition::hypothesisVerification(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+                                                 std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> registered_instances)
+{
+    std::vector<bool> mask;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::copyPointCloud(*blob, *scene);
+
+    pcl::GlobalHypothesesVerification<pcl::PointXYZI, pcl::PointXYZI> GoHv;
+    GoHv.setSceneCloud(scene);
+    GoHv.addModels(registered_instances, true);
+    GoHv.setResolution();
+    GoHv.setOcclusionThreshold();
+    GoHv.setInlierThreshold();
+    GoHv.setOcclusionThreshold();
+    GoHv.setRegularizer();
+    GoHv.setRadiusClutter();
+    GoHv.setClutterRegularizer();
+    GoHv.setDetectClutter();
+    GoHv.setRadiusNormals();
+    GoHv.verify();
+    GoHv.getMask(mask);
 }
 
 void nimbus::Recognition::visualization (const int num, 

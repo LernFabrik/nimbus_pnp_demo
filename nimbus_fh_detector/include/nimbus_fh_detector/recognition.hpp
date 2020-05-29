@@ -38,6 +38,12 @@ namespace nimbus{
             void cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
                                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &rototranslations, 
                                 std::vector<pcl::Correspondences> &clustered_corrs);
+            void registrationICP (const std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> instances,
+                                  const pcl::PointCloud<pcl::PointXYZI>::ConstPtr scene,
+                                  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations, 
+                                  std::vector<pcl::Correspondences> clustered_corrs);
+            void hypothesisVerification(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr blob,
+                                        std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> registered_instances);
             void visualization (const int num, 
                     const pcl::PointCloud<pcl::PointXYZI>::Ptr  scene,
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
