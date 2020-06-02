@@ -9,9 +9,9 @@
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.015, 0.015, 0.015), _nh(nh)
+nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.01, 0.01, 0.01), _nh(nh)
 {
-    pubPose = _nh.advertise<geometry_msgs::TransformStamped>("detected_pose", 5);
+    pubPose = _nh.advertise<geometry_msgs::TransformStamped>("/iiwa/detected_pose", 5);
     
 }
 nimbus::Recognition::~Recognition(){}
@@ -93,8 +93,8 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
     pcl::Hough3DGrouping<pcl::PointXYZI, pcl::PointXYZI, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
     for (int i = 0; i < 10; i++)
     {
-        clusterer.setHoughBinSize (0.015);
-        clusterer.setHoughThreshold (3.0);
+        clusterer.setHoughBinSize (0.017);
+        clusterer.setHoughThreshold (2.2);
         clusterer.setUseInterpolation (true);
         clusterer.setUseDistanceWeight (false);
 
@@ -153,11 +153,11 @@ void nimbus::Recognition::registrationICP (const std::vector<pcl::PointCloud<pcl
         icp_tf = icp.getFinalTransformation();
         // ToDo Why?
         icp_final_tf = icp_tf * rototranslations[i];
-        if(icp.hasConverged()){
-            ROS_ERROR("!Alligned!");
-        }else{
-            ROS_ERROR("!NOT Alligned!");
-        }
+        // if(icp.hasConverged()){
+        //     ROS_ERROR("!Alligned!");
+        // }else{
+        //     ROS_ERROR("!NOT Alligned!");
+        // }
         rototransList.push_back(icp_final_tf);
     }
     this->hypothesisVerification(cloud, registered_instances, rototransList);
@@ -167,7 +167,6 @@ void nimbus::Recognition::hypothesisVerification(const pcl::PointCloud<pcl::Poin
                                                  std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> registered_instances,
                                                  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations)
 {
-    ROS_ERROR("1");
     std::vector<bool> mask;
     pcl::PointCloud<pcl::PointXYZI>::Ptr scene (new pcl::PointCloud<pcl::PointXYZI>);
     pcl::copyPointCloud(*blob, *scene);
@@ -187,7 +186,6 @@ void nimbus::Recognition::hypothesisVerification(const pcl::PointCloud<pcl::Poin
     GoHv.verify();
     GoHv.getMask(mask);
     this->publishPose(mask, rototranslations);
-    ROS_ERROR("1");
 }
 
 void nimbus::Recognition::publishPose(std::vector<bool> mask, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations)
@@ -205,7 +203,7 @@ void nimbus::Recognition::publishPose(std::vector<bool> mask, std::vector<Eigen:
             tf2Scalar roll, pitch, yaw;
             mat.getEulerYPR(yaw, pitch, roll);
             tf2::Quaternion q;
-            q.setRPY(roll + (M_PI), pitch, yaw);
+            q.setRPY(roll, pitch, yaw);
             ROS_WARN("Position X: %f, Y: %f Z: %f", (float)translation(0), (float)translation(1), (float)translation(2));
             ROS_WARN("Rotation Roll: %f, Pitch: %f yaw: %f", (float)roll * (180 / M_PI), (float)pitch * (180 / M_PI), (float)yaw * (180 / M_PI));
             pose.header.frame_id = "camera";
@@ -213,13 +211,14 @@ void nimbus::Recognition::publishPose(std::vector<bool> mask, std::vector<Eigen:
             pose.header.stamp = ros::Time::now();
             pose.transform.translation.x = translation(0);
             pose.transform.translation.y = translation(1);
-            pose.transform.translation.z = translation(2) + 0.87;
+            pose.transform.translation.z = translation(2);
             pose.transform.rotation = tf2::toMsg(q);
             pubPose.publish(pose);
             tfb.sendTransform(pose);
+            ros::Duration(5.0).sleep();
         }
         else{
-            std::cout << "Instance " << i << " is bad!" << std::endl;
+            // std::cout << "Instance " << i << " is bad!" << std::endl;
         }
     }
 }
