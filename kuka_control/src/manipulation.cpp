@@ -53,20 +53,54 @@ geometry_msgs::PoseStamped iwtros::iiwaMove::generatePose(double x, double y, do
         return pose;
 }
 
+void iwtros::iiwaMove::generateMeanPose(const geometry_msgs::Transform detection)
+{
+        double x = 0, y = 0, yaw = 0;
+        int counter = 0;
+        geometry_msgs::Transform new_pose;
+        for (int i = 0; i < poseY.size(); i ++)
+        {
+                x += poseX.front();
+                y += poseY.front();
+                yaw += _yaw.front();
+                counter += 1;
+        }
+        new_pose = detected_pose;
+        new_pose.translation.x = x / counter;
+        new_pose.translation.y = y / counter;
+        tf2::Quaternion q;
+        q.setRPY(0, 0, yaw/counter);
+        new_pose.rotation  = tf2::toMsg(q);
+        while(poseY.size() > 0 && poseX.size() > 0)
+        {
+                poseY.pop();
+                poseX.pop();
+        }
+        this->generatePickPose(new_pose, "iiwa_link_0");
+}
 
 void iwtros::iiwaMove::generatePickPose(const geometry_msgs::Transform detection, std::string base_link){
         geometry_msgs::PoseStamped pose;
         pose.header.frame_id = base_link.c_str();
         pose.header.stamp = ros::Time::now() + ros::Duration(2.1);
-        pose.pose.position.x = detection.translation.x;
-        pose.pose.position.y = detection.translation.y;
-        pose.pose.position.z = 1.0;                     // Fixed Pose for the robot
+        ROS_INFO("Detected pose x: %f", detection.translation.x);
+        if(detection.translation.x > 0.20 || detection.translation.x < -0.20 || detection.translation.y > 0.20 || detection.translation.y < -0.20){
+                ROS_ERROR("False detection");
+                return;
+        }
+
+        pose.pose.position.x = 0.6 + detection.translation.x;
+        pose.pose.position.y = 0.09 - detection.translation.y;
+        pose.pose.position.z = 1.12;                     // Fixed Pose for the robot
         tf2::Quaternion quad, q;
         tf2Scalar roll, pitch, yaw;
         tf2::fromMsg(detection.rotation, quad);
         tf2::Matrix3x3 mat(quad);
         mat.getEulerYPR(yaw, pitch, roll);
-        q.setRPY(0, 0, yaw);
+        /// Yaw Correction. 
+        tf2Scalar fixed_yaw = (3*M_PI)/4;
+        double new_yaw = fixed_yaw - yaw;
+        q.setRPY(M_PI, 0, new_yaw);
         pose.pose.orientation.x = q.x();
         pose.pose.orientation.y = q.y();
         pose.pose.orientation.z = q.z();
