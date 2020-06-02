@@ -1,6 +1,8 @@
 #ifndef _IIWA_MANIPULATION_H
 #define _IIWA_MANIPULATION_H
 
+#include <queue>
+
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -38,7 +40,10 @@ namespace iwtros{
         geometry_msgs::Transform detected_pose;
         geometry_msgs::PoseStamped pick_pose;
         bool ready_pick_pose;
-    
+        std::queue<double> poseX;
+        std::queue<double> poseY;
+        std::queue<double> _yaw;
+
     public:
         iiwaMove(ros::NodeHandle nh, const std::string planning_group);
         ~iiwaMove();
@@ -46,9 +51,10 @@ namespace iwtros{
         void init(ros::NodeHandle nh);
 
         /** Detected Pose Callback*/ 
-        void callback(const geometry_msgs::Transform::ConstPtr& data);
+        void callback(const geometry_msgs::TransformStamped::ConstPtr& data);
 
         /** Return geometry pose from given poisition values*/
+        void generateMeanPose(const geometry_msgs::Transform detection);
         void generatePickPose(const geometry_msgs::Transform detection, std::string base_link);
 
          /** Return geometry pose from given poisition values*/

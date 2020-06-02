@@ -64,7 +64,7 @@ class Detector : public nimbus::Recognition{
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
             _cloud->is_dense = false;
-            _util.outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *_cloud);
+            _util.outlineRemover(blob, blob->width, blob->height, 0.65, 0.65, *_cloud);
             _util._queue.enqueue(*_cloud);
             _newCloud = true;        
         }

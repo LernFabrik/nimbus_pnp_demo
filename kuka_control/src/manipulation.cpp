@@ -21,7 +21,7 @@ iwtros::iiwaMove::~iiwaMove(){}
 
 void iwtros::iiwaMove::init(ros::NodeHandle nh){
         _loadParam();
-        _sub = nh.subscribe<geometry_msgs::Transform>("detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
+        _sub = nh.subscribe<geometry_msgs::TransformStamped>("detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
         _initialized = true;
         ready_pick_pose = false;
 }
@@ -30,8 +30,8 @@ void iwtros::iiwaMove::_loadParam(){
         PLANNER_ID = "PTP";
         REFERENCE_FRAME = "iiwa_link_0";
         EE_FRAME = "iiwa_link_ee";
-        velocityScalling = 0.4;
-        accelerationScalling = 0.4;
+        velocityScalling = 0.3;
+        accelerationScalling = 0.3;
         // ToDo: input array param goals
 }
 
@@ -109,16 +109,28 @@ void iwtros::iiwaMove::generatePickPose(const geometry_msgs::Transform detection
         this->ready_pick_pose = true;
 }
 
-void iwtros::iiwaMove::callback(const geometry_msgs::Transform::ConstPtr& data){
-        this->detected_pose.translation.x = data->translation.x;
-        this->detected_pose.translation.y = data->translation.y;
-        this->detected_pose.translation.z = data->translation.z;
-        this->detected_pose.rotation.x = data->rotation.x;
-        this->detected_pose.rotation.y = data->rotation.y;
-        this->detected_pose.rotation.z = data->rotation.z;
-        this->detected_pose.rotation.w = data->rotation.w;
+void iwtros::iiwaMove::callback(const geometry_msgs::TransformStamped::ConstPtr& data){
+        this->detected_pose.translation.x = data->transform.translation.x;
+        this->detected_pose.translation.y = data->transform.translation.y;
+        this->detected_pose.translation.z = data->transform.translation.z;
+        this->detected_pose.rotation.x = data->transform.rotation.x;
+        this->detected_pose.rotation.y = data->transform.rotation.y;
+        this->detected_pose.rotation.z = data->transform.rotation.z;
+        this->detected_pose.rotation.w = data->transform.rotation.w;
 
-        this->generatePickPose(this->detected_pose, "iiwa_link_0");
+        tf2::Quaternion quad, q;
+        tf2Scalar roll, pitch, yaw;
+        tf2::fromMsg(this->detected_pose.rotation, quad);
+        tf2::Matrix3x3 mat(quad);
+        mat.getEulerYPR(yaw, pitch, roll);
+
+        poseX.push(this->detected_pose.translation.x);
+        poseY.push(this->detected_pose.translation.y);
+        _yaw.push(yaw);
+        if(poseY.size() > 1 && poseX.size() > 1){
+                this->generateMeanPose(this->detected_pose);
+        }
+        // this->generatePickPose(this->detected_pose, "iiwa_link_0");
 }
 
 void iwtros::iiwaMove::run(){
@@ -143,18 +155,28 @@ void iwtros::iiwaMove::_ctrl_loop(){
         static ros::Rate r(1);
         // ToDo: Check asynchronous spinner is required
         ros::spinOnce();
+        bool home_position = true;
         while(ros::ok()){
                 geometry_msgs::PoseStamped place_pose = generatePose(0.228, -0.428, 1.2215, M_PI, 0 , M_PI/4, "iiwa_link_0");
-                geometry_msgs::PoseStamped home_pose = generatePose(0.228, -0.428, 1.2215, M_PI, 0 , M_PI/4, "iiwa_link_0");
+                geometry_msgs::PoseStamped home_pose = generatePose(0.228, -0.428, 1.3, M_PI, 0 , M_PI/4, "iiwa_link_0");
+                geometry_msgs::PoseStamped test_pose = generatePose(0.6, 0.09, 1.12, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
 
                 if(ready_pick_pose){
                         ready_pick_pose = false;
+                        _sub.shutdown();
+                        ROS_WARN("Moving to Pick");
                         pnpPipeLine(this->pick_pose, place_pose, 0.12);
-                }else{
+                        home_position = true;
+                        _sub = _nh.subscribe<geometry_msgs::TransformStamped>("detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
+                        ros::spinOnce(); 
+                }if(home_position){
+                        home_position = false;
+                        ROS_WARN("Home Pose");
                         motionExecution(home_pose);
+                }else{
+                        ROS_WARN("Doing Nothing and I am HAPPY!");
                 }
-
-                ros::spinOnce();
+                ros::spinOnce();        
                 r.sleep();
         }
 }
