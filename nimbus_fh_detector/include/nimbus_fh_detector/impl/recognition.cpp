@@ -108,19 +108,19 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZI>::Co
         if (rototranslations.size() > 0){
             std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
             std::vector<pcl::PointCloud<pcl::PointXYZI>::ConstPtr> instances;
-            for(std::size_t i = 0; i < rototranslations.size(); ++i)
+            for(std::size_t j = 0; j < rototranslations.size(); ++j)
             {
                 std::vector<int> indices;
                 pcl::PointCloud<pcl::PointXYZI>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZI>());
                 pcl::PointCloud<pcl::PointXYZI>::Ptr modelNoNaN (new pcl::PointCloud<pcl::PointXYZI>());
                 pcl::removeNaNFromPointCloud(*_model[i], *modelNoNaN, indices);
                 modelNoNaN->is_dense = false;
-                pcl::transformPointCloud(*modelNoNaN, *rotated_model, rototranslations[i]);
+                pcl::transformPointCloud(*modelNoNaN, *rotated_model, rototranslations[j]);
                 instances.push_back(rotated_model);
-                trasformations.push_back(rototranslations[i]);
-                clusters.push_back(clustered_corrs[i]);
+                trasformations.push_back(rototranslations[j]);
+                clusters.push_back(clustered_corrs[j]);
             }
-            this->registrationICP(instances, cloud, rototranslations, clustered_corrs);
+            this->registrationICP(instances, cloud, rototranslations, clusters);
         }
     }
 }
