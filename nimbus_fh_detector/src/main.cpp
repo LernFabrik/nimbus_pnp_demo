@@ -33,11 +33,8 @@ class Detector : public nimbus::Recognition{
         bool _newCloud = false;
 
         cloudUtilities<pcl::PointXYZI> _util;
-        geometry_msgs::TransformStamped pose;
-        geometry_msgs::TransformStamped camera;
-        tf2_ros::TransformBroadcaster tfb;
         tf2_ros::StaticTransformBroadcaster staticTF;
-        ros::Publisher pubPose;
+        geometry_msgs::TransformStamped camera;
         
     public:
         Detector(ros::NodeHandle nh): _nh(nh),
@@ -46,7 +43,6 @@ class Detector : public nimbus::Recognition{
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
-            pubPose = nh.advertise<geometry_msgs::TransformStamped>("detected_pose", 5);
             camera.header.frame_id = "iiwa_link_0";
             camera.child_frame_id = "camera";
             camera.transform.translation.x = 0.9;
@@ -91,43 +87,8 @@ class Detector : public nimbus::Recognition{
                     }
                     _util.meanFilter(*blob);
                     
-                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
-                    std::vector<pcl::Correspondences> clustered_corrs;
+                    this->cloudHough3D(blob);
 
-                    this->cloudHough3D(blob, rototranslations, clustered_corrs);
-
-                    std::cout << "Model instances found: " << rototranslations.size () << std::endl;
-
-                    // Pub data
-                    for(std::size_t i = 0; i < rototranslations.size(); ++i){
-                        std::cout << "\n  Instance " << i+1 << ":" << std::endl;
-                        std::cout << "        Correspondences belonging to this instance: " << clustered_corrs[i].size () << std::endl;
-                        //std::cout << "        Scale: " << scale[i] << std::endl;
-
-                        Eigen::Matrix3f rotation = rototranslations[i].block<3,3>(0,0);
-                        Eigen::Vector3f translation = rototranslations[i].block<3,1>(0, 3);
-                        tf2::Matrix3x3 mat(rotation (0,0), rotation (0,1), rotation (0,2),
-                                        rotation (1,0), rotation (1,1), rotation (1,2),
-                                        rotation (2,0), rotation (2,1), rotation (2,2));
-                        tf2Scalar roll, pitch, yaw;
-                        mat.getEulerYPR(yaw, pitch, roll);
-                        tf2::Quaternion q;
-                        q.setRPY(roll, pitch, yaw);
-                         ROS_WARN("Position X: %f, Y: %f Z: %f", (float)translation(0), (float)translation(1), (float)translation(2));
-                        ROS_WARN("Rotation Roll: %f, Pitch: %f yaw: %f", (float)roll * (180 / M_PI), (float)pitch * (180 / M_PI), (float)yaw * (180 / M_PI));
-                        pose.header.frame_id = "camera";
-                        pose.child_frame_id = "object";
-                        pose.header.stamp = ros::Time::now();
-                        pose.transform.translation.x = translation(0);
-                        pose.transform.translation.y = translation(1);
-                        pose.transform.translation.z = translation(2);
-                        pose.transform.rotation = tf2::toMsg(q);
-                        pubPose.publish(pose);
-                        tfb.sendTransform(pose);
-                        camera.header.stamp = ros::Time::now();
-                        staticTF.sendTransform(camera);
-                        // ros::Duration(10).sleep();
-                    }
                     ros::Duration(2).sleep();
                     blob->header.frame_id = "camera";
                     pcl_conversions::toPCL(ros::Time::now(), blob->header.stamp);
