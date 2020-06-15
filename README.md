@@ -5,7 +5,7 @@
 
 |Branch    | ROS Distro | Status    |
 |----------|------------|-----------|
-|master    | Melodic    |[![Build Status](https://travis-ci.com/prachandabhanu/nimbus_pnp_demo.svg?token=yqkyfk4FvxS9Ln2vKCUM&branch=master)](https://travis-ci.com/prachandabhanu/nimbus_pnp_demo)|
+|master    | Melodic    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)|
 
 # Setting up the evnironment
 Both sourcing and executing the script will run the commands in the script line by line, as if you typed those commands by hand line by line.
