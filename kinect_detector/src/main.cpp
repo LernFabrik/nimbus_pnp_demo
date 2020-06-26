@@ -18,10 +18,10 @@
 #include <pcl/filters/filter.h>
 #include <pcl/io/impl/synchronized_queue.hpp>
 
-#include <nimbus_fh_detector/utilities.h>
-#include <nimbus_fh_detector/recognition.hpp>
+#include <kinect_detector/utilities.h>
+#include <kinect_detector/recognition.hpp>
 
-typedef pcl::PointXYZI PointType;
+typedef pcl::PointXYZ PointType;
 typedef pcl::PointCloud<PointType> PointCloud;
 
 class Detector : public nimbus::Recognition{
@@ -32,7 +32,7 @@ class Detector : public nimbus::Recognition{
         PointCloud::Ptr _cloud;
         bool _newCloud = false;
 
-        cloudUtilities<pcl::PointXYZI> _util;
+        cloudUtilities<pcl::PointXYZ> _util;
         tf2_ros::StaticTransformBroadcaster staticTF;
         geometry_msgs::TransformStamped camera;
         
@@ -59,7 +59,7 @@ class Detector : public nimbus::Recognition{
         void callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
             _cloud.reset(new PointCloud());
-            pcl::PointCloud<pcl::PointXYZI>::Ptr blob (new pcl::PointCloud<pcl::PointXYZI>());
+            pcl::PointCloud<pcl::PointXYZ>::Ptr blob (new pcl::PointCloud<pcl::PointXYZ>());
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);

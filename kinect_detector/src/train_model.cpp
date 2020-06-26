@@ -14,17 +14,17 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <std_msgs/Bool.h>
 
-#include <nimbus_fh_detector/utilities.h>
+#include <kinect_detector/utilities.h>
 #include <boost/filesystem.hpp>
 
-class ModelTraining : public cloudUtilities<pcl::PointXYZI>
+class ModelTraining : public cloudUtilities<pcl::PointXYZ>
 {
     protected:
-        typename pcl::PointCloud<pcl::PointXYZI>::Ptr _cloud;
-        typename pcl::PointCloud<pcl::PointXYZI>::Ptr _ground;
-        typename pcl::PointCloud<pcl::PointXYZI>::Ptr _model;
-        typename pcl::PointCloud<pcl::PointXYZI>::Ptr blob;
-        typename pcl::PointCloud<pcl::PointXYZI>::Ptr blob_removed;
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr _ground;
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr _model;
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr blob;
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr blob_removed;
         bool save_point_cloud;
         ros::NodeHandle _nh;
         ros::Subscriber _sub;
@@ -37,10 +37,10 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
     public: 
         ModelTraining(ros::NodeHandle nh, std::string work_dir): _nh(nh), 
                                            save_point_cloud(false), 
-                                           cloudUtilities<pcl::PointXYZI>()
+                                           cloudUtilities<pcl::PointXYZ>()
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10 , boost::bind(&ModelTraining::Callback, this, _1));
-            _pub = _nh.advertise<pcl::PointCloud<pcl::PointXYZI>>("filtered_cloud", 5);
+            _pub = _nh.advertise<pcl::PointCloud<pcl::PointXYZ>>("filtered_cloud", 5);
             _sub_save = nh.subscribe<std_msgs::Bool>("save_pointcloud", 10, boost::bind(&ModelTraining::saveCallback, this, _1));
             _cameraPose.child_frame_id = "detector";
             _cameraPose.header.frame_id = "world";
@@ -57,8 +57,8 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
 
         void Callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
         {
-            blob.reset(new pcl::PointCloud<pcl::PointXYZI>());
-            blob_removed.reset(new pcl::PointCloud<pcl::PointXYZI>());
+            blob.reset(new pcl::PointCloud<pcl::PointXYZ>());
+            blob_removed.reset(new pcl::PointCloud<pcl::PointXYZ>());
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
@@ -89,9 +89,9 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZI>
                 unsigned int queue_size = this->_queue.size();
                 if(queue_size > 20)
                 {
-                    _cloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
-                    _ground.reset(new pcl::PointCloud<pcl::PointXYZI>());
-                    _model.reset(new pcl::PointCloud<pcl::PointXYZI>());
+                    _cloud.reset(new pcl::PointCloud<pcl::PointXYZ>());
+                    _ground.reset(new pcl::PointCloud<pcl::PointXYZ>());
+                    _model.reset(new pcl::PointCloud<pcl::PointXYZ>());
                     this->meanFilter(*_cloud);
 
                     ROS_INFO("Ready to save");

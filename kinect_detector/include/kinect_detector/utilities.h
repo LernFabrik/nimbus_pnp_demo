@@ -68,7 +68,7 @@ void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
     std::vector<float> addX(width*height, 0);
     std::vector<float> addY(width*height, 0);
     std::vector<float> addZ(width*height, 0);
-    std::vector<float> ampt(width*height, 0);
+    // std::vector<float> ampt(width*height, 0);
     //Point_Cloud sum;
     
     res.width = width;
@@ -80,7 +80,7 @@ void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
                 addX[i] += tempC->points[i].x;
                 addY[i] += tempC->points[i].y;
                 addZ[i] += tempC->points[i].z;
-                ampt[i] += tempC->points[i].intensity;
+                // ampt[i] += tempC->points[i].intensity;
                 mnCounter[i] +=1;
             }else{
                 conf[i] = 1;
@@ -95,12 +95,12 @@ void cloudUtilities<PointType>::meanFilter(pcl::PointCloud<PointType> &res){
             temPoint.x = NAN;
             temPoint.y = NAN;
             temPoint.z = NAN;
-            temPoint.intensity = NAN;
+            // temPoint.intensity = NAN;
         }else{
             temPoint.x = addX[i] / mnCounter[i];
             temPoint.y = addY[i] / mnCounter[i];
             temPoint.z = addZ[i] / mnCounter[i];
-            temPoint.intensity = ampt[i] / mnCounter[i];
+            // temPoint.intensity = ampt[i] / mnCounter[i];
         }
         res.points.push_back(temPoint);
     }
@@ -123,13 +123,13 @@ void cloudUtilities<PointType>::outlineRemover(const boost::shared_ptr< const pc
         std::vector<float> tempX;
         std::vector<float> tempY;
         std::vector<float> tempZ;
-        std::vector<float> tempA;
+        // std::vector<float> tempA;
         for(int j = 0; j < width; j++){
             if((i > hLower & i < hUpper) & (j > wLower & j < wUpper)){
                 tempX.push_back(blob->points[pCounter].x);
                 tempY.push_back(blob->points[pCounter].y);
                 tempZ.push_back(blob->points[pCounter].z);
-                tempA.push_back(blob->points[pCounter].intensity);
+                // tempA.push_back(blob->points[pCounter].intensity);
                 pCounter ++;
             }else pCounter ++;
         }
@@ -139,7 +139,7 @@ void cloudUtilities<PointType>::outlineRemover(const boost::shared_ptr< const pc
                 temP.x = tempX[i];
                 temP.y = tempY[i];
                 temP.z = tempZ[i];
-                temP.intensity = tempA[i];
+                // temP.intensity = tempA[i];
                 res.points.push_back(temP);
             }
         }
@@ -158,7 +158,7 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
         ROS_ERROR ("Size of ground truth and raw point cloud is not matching");
         return;
     }
-    typename pcl::PointCloud<pcl::PointXYZI>::Ptr edit_cloud (new pcl::PointCloud<pcl::PointXYZI>());
+    typename pcl::PointCloud<PointType>::Ptr edit_cloud (new pcl::PointCloud<PointType>());
     // Store the difference of z axis values;
     std::vector<float> absZ;
     for (int i = 0; i < groud->points.size(); i ++){
@@ -169,19 +169,19 @@ void cloudUtilities<PointType>::modelFromGroudtruth(const boost::shared_ptr< con
     }
     
     for (int i = 0; i < absZ.size(); i ++){
-        pcl::PointXYZI temp;
+        PointType temp;
         if(!std::isnan(absZ[i]) && absZ[i] > tolerence)
         {
             temp.x = raw->points[i].x;
             temp.y = raw->points[i].y;
             temp.z = raw->points[i].z;
-            temp.intensity = raw->points[i].intensity;
+            // temp.intensity = raw->points[i].intensity;
         }
         else{
             temp.x = NAN;
             temp.y = NAN;
             temp.z = NAN;
-            temp.intensity = NAN;
+            // temp.intensity = NAN;
         }
         edit_cloud->points.push_back(temp);
     }

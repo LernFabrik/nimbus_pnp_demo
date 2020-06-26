@@ -19,7 +19,7 @@
 #include <pcl/features/fpfh_omp.h>
 #include <pcl/features/vfh.h>
 
-#include <nimbus_fh_detector/filters.h>
+#include <kinect_detector/filters.h>
 
 /** 
  * http://www.pointclouds.org/documentation/tutorials/#features-tutorial
