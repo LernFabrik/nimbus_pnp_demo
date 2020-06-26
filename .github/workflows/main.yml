@@ -10,7 +10,9 @@ on: [push, pull_request] # on all pushes and PRs
 # on:
 #   # When master or melodic-devel branch is pushed to
 #   push:
-#     branches: [ master, melodic-devel ]
+#     branches: 
+#       - master
+#       - 'test/*'
 #   # When there is a pull request against master
 #   pull_request:
 #     branches: [ master ]
