@@ -41,10 +41,10 @@ class Detector : public nimbus::Recognition{
                                       _util(),
                                       nimbus::Recognition(nh, "/home/vishnu/ros_ws/test")
         {
-            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
+            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("points2", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
-            camera.header.frame_id = "iiwa_link_0";
-            camera.child_frame_id = "camera";
+            camera.header.frame_id = "camera_base";
+            camera.child_frame_id = "detetor";
             camera.transform.translation.x = 0.9;
             camera.transform.translation.y = 0.1;
             camera.transform.translation.z = 0.79;
@@ -63,9 +63,9 @@ class Detector : public nimbus::Recognition{
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            _cloud->is_dense = false;
-            _util.outlineRemover(blob, blob->width, blob->height, 0.65, 0.65, *_cloud);
-            _util._queue.enqueue(*_cloud);
+            blob->is_dense = false;
+            // _util.outlineRemover(blob, blob->width, blob->height, 0.65, 0.65, *_cloud);
+            _util._queue.enqueue(*blob);
             _newCloud = true;        
         }
 
@@ -81,7 +81,7 @@ class Detector : public nimbus::Recognition{
                     PointCloud::Ptr blob (new PointCloud());
 
                     int queue_size = _util._queue.size();
-                    while (!(queue_size > 5) ){
+                    while (!(queue_size > 2) ){
                         queue_size = _util._queue.size();
                         ros::spinOnce();
                     }
@@ -90,7 +90,7 @@ class Detector : public nimbus::Recognition{
                     this->cloudHough3D(blob);
 
                     ros::Duration(2).sleep();
-                    blob->header.frame_id = "camera";
+                    blob->header.frame_id = "detetor";
                     pcl_conversions::toPCL(ros::Time::now(), blob->header.stamp);
                     _pub.publish(blob);
                     ros::spinOnce();

@@ -9,7 +9,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.01, 0.01, 0.01), _nh(nh)
+nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.03, 0.03, 0.03), _nh(nh)
 {
     pubPose = _nh.advertise<geometry_msgs::TransformStamped>("/iiwa/detected_pose", 5);
     
@@ -94,7 +94,7 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::Con
     for (int i = 0; i < 10; i++)
     {
         clusterer.setHoughBinSize (0.017);
-        clusterer.setHoughThreshold (2.2);
+        clusterer.setHoughThreshold (5.0);
         clusterer.setUseInterpolation (true);
         clusterer.setUseDistanceWeight (false);
 

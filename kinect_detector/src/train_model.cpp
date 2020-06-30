@@ -65,9 +65,6 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
             // this->outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *blob_removed); // because the point size is define in the width and height = 1 
             blob->is_dense = false;
             this->_queue.enqueue(*blob);
-            blob->header.frame_id = "detector";
-            pcl_conversions::toPCL(ros::Time::now(), blob->header.stamp);
-            _pub.publish(blob);
         }
 
         void saveCallback(const std_msgs::Bool::ConstPtr &msg)
@@ -122,13 +119,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
 
                     _cloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), _cloud->header.stamp);
-                    // _pub.publish(_cloud);
-
-                    if(queue_size > 100){
-                        while(!this->_queue.isEmpty()){
-                            this->_queue.dequeue(*_cloud);
-                        }
-                    }
+                    _pub.publish(_cloud);
                 }
                 _staticTrans.sendTransform(_cameraPose);
                 ros::spinOnce();
