@@ -39,11 +39,11 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
                                            save_point_cloud(false), 
                                            cloudUtilities<pcl::PointXYZ>()
         {
-            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10 , boost::bind(&ModelTraining::Callback, this, _1));
+            _sub = _nh.subscribe<sensor_msgs::PointCloud2>("points2", 10 , boost::bind(&ModelTraining::Callback, this, _1));
             _pub = _nh.advertise<pcl::PointCloud<pcl::PointXYZ>>("filtered_cloud", 5);
             _sub_save = nh.subscribe<std_msgs::Bool>("save_pointcloud", 10, boost::bind(&ModelTraining::saveCallback, this, _1));
             _cameraPose.child_frame_id = "detector";
-            _cameraPose.header.frame_id = "world";
+            _cameraPose.header.frame_id = "camera_base";
             _cameraPose.transform.translation.x = 0;
             _cameraPose.transform.translation.y = 0;
             _cameraPose.transform.translation.z = 1;
@@ -62,9 +62,12 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
             pcl::PCLPointCloud2 pcl_pc2;
             pcl_conversions::toPCL(*msg, pcl_pc2);
             pcl::fromPCLPointCloud2(pcl_pc2, *blob);
-            this->outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *blob_removed);
-            blob_removed->is_dense = false;
-            this->_queue.enqueue(*blob_removed);
+            // this->outlineRemover(blob, blob->width, blob->height, 0.67, 0.67, *blob_removed); // because the point size is define in the width and height = 1 
+            blob->is_dense = false;
+            this->_queue.enqueue(*blob);
+            blob->header.frame_id = "detector";
+            pcl_conversions::toPCL(ros::Time::now(), blob->header.stamp);
+            _pub.publish(blob);
         }
 
         void saveCallback(const std_msgs::Bool::ConstPtr &msg)
@@ -87,7 +90,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
             while(ros::ok())
             {
                 unsigned int queue_size = this->_queue.size();
-                if(queue_size > 20)
+                if(queue_size > 2)
                 {
                     _cloud.reset(new pcl::PointCloud<pcl::PointXYZ>());
                     _ground.reset(new pcl::PointCloud<pcl::PointXYZ>());
@@ -109,7 +112,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
                         }else{
                             ss << std::to_string(counter) << extention;
                             pcl::io::loadPCDFile(saved_groudtruth, *_ground);
-                            this->modelFromGroudtruth(_ground, _cloud, 0.03, *_model);
+                            this->modelFromGroudtruth(_ground, _cloud, 0.05, *_model);
                             pcl::io::savePCDFileASCII(ss.str(), *_model);
                             std::string saved_model_path = ss.str();
                             ROS_WARN("Saved PCD file path: %s", saved_model_path.c_str());
@@ -119,7 +122,7 @@ class ModelTraining : public cloudUtilities<pcl::PointXYZ>
 
                     _cloud->header.frame_id = "detector";
                     pcl_conversions::toPCL(ros::Time::now(), _cloud->header.stamp);
-                    _pub.publish(_cloud);
+                    // _pub.publish(_cloud);
 
                     if(queue_size > 100){
                         while(!this->_queue.isEmpty()){
