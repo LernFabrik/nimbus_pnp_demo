@@ -51,14 +51,14 @@ namespace nimbus{
             ros::Publisher _pub;
 
         protected:
-            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> _model;
-            std::vector<pcl::PointCloud<pcl::Normal>::Ptr> _model_normals;
-            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> _model_keypoints;
-            std::vector<pcl::PointCloud<pcl::SHOT352>::Ptr> _model_description;
-            std::vector<pcl::PointCloud<pcl::ReferenceFrame>::Ptr> _model_board;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr _model;
+            pcl::PointCloud<pcl::Normal>::Ptr _model_normals;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr _model_keypoints;
+            pcl::PointCloud<pcl::SHOT352>::Ptr _model_description;
+            pcl::PointCloud<pcl::ReferenceFrame>::Ptr _model_board;
 
             nimbus::Features<pcl::PointXYZ, pcl::Normal, pcl::SHOT352> _features;
-            std::vector<pcl::CorrespondencesPtr> model_scene_corr;
+            pcl::CorrespondencesPtr model_scene_corr;
         public:
             Recognition(ros::NodeHandle nh, const std::string path);
             ~Recognition();

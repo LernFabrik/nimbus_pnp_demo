@@ -9,7 +9,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh, 0.03, 0.03, 0.03), _nh(nh)
+nimbus::Recognition::Recognition(ros::NodeHandle nh, const std::string path): _path(path), _features(nh), _nh(nh)
 {
     pubPose = _nh.advertise<geometry_msgs::TransformStamped>("/iiwa/detected_pose", 5);
     
@@ -18,64 +18,54 @@ nimbus::Recognition::~Recognition(){}
 
 void nimbus::Recognition::constructModelParam()
 {
-    _model.resize(10);
-    _model_normals.resize(10);
-    _model_keypoints.resize(10);
-    _model_description.resize(10);
-    _model_board.resize(10);
-    // ToDo: Change the fixed number of *.pcd file to for loop
+    _features.updateSearchRadius(0.01, 0.01, 0.01);
     
-    for(int i = 0; i < 10; i++)
-    {
-        _model[i].reset(new pcl::PointCloud<pcl::PointXYZ>());
-        _model_normals[i].reset(new pcl::PointCloud<pcl::Normal>());
-        _model_keypoints[i].reset(new pcl::PointCloud<pcl::PointXYZ>());
-        _model_description[i].reset(new pcl::PointCloud<pcl::SHOT352>());
-        _model_board[i].reset(new pcl::PointCloud<pcl::ReferenceFrame>());
+    _model.reset(new pcl::PointCloud<pcl::PointXYZ>());
+    _model_normals.reset(new pcl::PointCloud<pcl::Normal>());
+    _model_keypoints.reset(new pcl::PointCloud<pcl::PointXYZ>());
+    _model_description.reset(new pcl::PointCloud<pcl::SHOT352>());
+    _model_board.reset(new pcl::PointCloud<pcl::ReferenceFrame>());
 
-        typename pcl::PointCloud<pcl::PointXYZ>::Ptr blob (new pcl::PointCloud<pcl::PointXYZ>());
-        std::stringstream model_path;
-        model_path << _path << "/box_";
-        model_path << std::to_string(i+1) << ".pcd";
-        pcl::io::loadPCDFile(model_path.str(), *blob);
-        pcl::copyPointCloud(*blob, *_model[i]);
-        _features.extraction(blob);
+    typename pcl::PointCloud<pcl::PointXYZ>::Ptr blob (new pcl::PointCloud<pcl::PointXYZ>());
+    std::stringstream model_path;
+    model_path << _path << "/box_";
+    model_path << "modif" << ".pcd";
+    pcl::io::loadPCDFile(model_path.str(), *blob);
+    pcl::copyPointCloud(*blob, *_model);
+    _features.extraction(blob);
 
-        _model_keypoints[i] = _features.keypoints;
-        _model_normals[i] = _features.normals;
-        _model_description[i] = _features.descriptor;
-        _model_board[i] = _features.board;
-    }
+    _model_keypoints = _features.keypoints;
+    _model_normals = _features.normals;
+    _model_description = _features.descriptor;
+    _model_board = _features.board;
 }
 
 void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
 {
     // Call model contructor before this.
+    _features.updateSearchRadius(0.03, 0.03, 0.03);
     _features.extraction(blob);
-    model_scene_corr.resize(_model_description.size());
-    for(int j = 0; j < _model_description.size(); j++)
+
+    model_scene_corr.reset(new pcl::Correspondences());
+    pcl::KdTreeFLANN<pcl::SHOT352> match_search;
+    match_search.setInputCloud(_model_description);
+    for(std::size_t i = 0; i < _features.descriptor->size(); i++)
     {
-        model_scene_corr[j].reset(new pcl::Correspondences());
-        pcl::KdTreeFLANN<pcl::SHOT352> match_search;
-        match_search.setInputCloud(_model_description[j]);
-        for(std::size_t i = 0; i < _features.descriptor->size(); i++)
-        {
-            std::vector<int> neigh_indices(1);
-            std::vector<float> neigh_sqrt_distance(1);
+        std::vector<int> neigh_indices(1);
+        std::vector<float> neigh_sqrt_distance(1);
 
-            if(! std::isfinite(_features.descriptor->at(i).descriptor[0])){
-                continue;
-            }
-
-            int found_neighs = match_search.nearestKSearch(_features.descriptor->at(i), 1, neigh_indices, neigh_sqrt_distance);
-            if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.25f)
-            {
-                pcl::Correspondence corr(neigh_indices[0], static_cast<int> (i), neigh_sqrt_distance[0]);
-                model_scene_corr[j]->push_back(corr);
-            }
+        if(! std::isfinite(_features.descriptor->at(i).descriptor[0])){
+            continue;
         }
-        // std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
+
+        int found_neighs = match_search.nearestKSearch(_features.descriptor->at(i), 1, neigh_indices, neigh_sqrt_distance);
+        if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.25f)
+        {
+            pcl::Correspondence corr(neigh_indices[0], static_cast<int> (i), neigh_sqrt_distance[0]);
+            model_scene_corr->push_back(corr);
+        }
     }
+    // std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
 }
 
 void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
@@ -91,37 +81,35 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::Con
     std::vector<pcl::Correspondences> clustered_corrs;
 
     pcl::Hough3DGrouping<pcl::PointXYZ, pcl::PointXYZ, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
-    for (int i = 0; i < 10; i++)
-    {
-        clusterer.setHoughBinSize (0.017);
-        clusterer.setHoughThreshold (5.0);
-        clusterer.setUseInterpolation (true);
-        clusterer.setUseDistanceWeight (false);
+   
+    clusterer.setHoughBinSize (0.017);
+    clusterer.setHoughThreshold (5.0);
+    clusterer.setUseInterpolation (true);
+    clusterer.setUseDistanceWeight (false);
 
-        clusterer.setInputCloud (_model_keypoints[i]);
-        clusterer.setInputRf (_model_board[i]);
-        clusterer.setSceneCloud (_features.keypoints);
-        clusterer.setSceneRf (_features.board);
-        clusterer.setModelSceneCorrespondences (model_scene_corr[i]);
+    clusterer.setInputCloud (_model_keypoints);
+    clusterer.setInputRf (_model_board);
+    clusterer.setSceneCloud (_features.keypoints);
+    clusterer.setSceneRf (_features.board);
+    clusterer.setModelSceneCorrespondences (model_scene_corr);
 
-        clusterer.recognize (rototranslations, clustered_corrs);
-        if (rototranslations.size() > 0){
-            std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr[i]->size () << " at: " << i << std::endl;
-            std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> instances;
-            for(std::size_t j = 0; j < rototranslations.size(); ++j)
-            {
-                std::vector<int> indices;
-                pcl::PointCloud<pcl::PointXYZ>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZ>());
-                pcl::PointCloud<pcl::PointXYZ>::Ptr modelNoNaN (new pcl::PointCloud<pcl::PointXYZ>());
-                pcl::removeNaNFromPointCloud(*_model[i], *modelNoNaN, indices);
-                modelNoNaN->is_dense = false;
-                pcl::transformPointCloud(*modelNoNaN, *rotated_model, rototranslations[j]);
-                instances.push_back(rotated_model);
-                trasformations.push_back(rototranslations[j]);
-                clusters.push_back(clustered_corrs[j]);
-            }
-            this->registrationICP(instances, cloud, rototranslations, clusters);
+    clusterer.recognize (rototranslations, clustered_corrs);
+    if (rototranslations.size() > 0){
+        std::cout << "The model is recognized for Correspondences size: " <<  model_scene_corr->size () << std::endl;
+        std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> instances;
+        for(std::size_t i = 0; i < rototranslations.size(); ++i)
+        {
+            std::vector<int> indices;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::PointCloud<pcl::PointXYZ>::Ptr modelNoNaN (new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::removeNaNFromPointCloud(*_model, *modelNoNaN, indices);
+            modelNoNaN->is_dense = false;
+            pcl::transformPointCloud(*modelNoNaN, *rotated_model, rototranslations[i]);
+            instances.push_back(rotated_model);
+            trasformations.push_back(rototranslations[i]);
+            clusters.push_back(clustered_corrs[i]);
         }
+        this->registrationICP(instances, cloud, rototranslations, clusters);
     }
 }
 
@@ -233,8 +221,8 @@ void nimbus::Recognition::visualization (const int num,
     pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZ> ());
     pcl::PointCloud<pcl::PointXYZ>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZ> ());
 
-    pcl::transformPointCloud(*_model[num], *off_scene_model, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
-    pcl::transformPointCloud (*_model_keypoints[num], *off_scene_model_keypoints, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+    pcl::transformPointCloud(*_model, *off_scene_model, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+    pcl::transformPointCloud (*_model_keypoints, *off_scene_model_keypoints, Eigen::Vector3f (-1,0,0), Eigen::Quaternionf (1, 0, 0, 0));
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
     viewer.addPointCloud (off_scene_model, off_scene_model_color_handler, "off_scene_model");
@@ -250,7 +238,7 @@ void nimbus::Recognition::visualization (const int num,
     for(std::size_t i = 0; i < rototranslations.size(); i++)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr rotated_model (new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::transformPointCloud (*_model[num], *rotated_model, rototranslations[i]);
+        pcl::transformPointCloud (*_model, *rotated_model, rototranslations[i]);
 
         std::stringstream ss_cloud;
         ss_cloud << "instance" << i;

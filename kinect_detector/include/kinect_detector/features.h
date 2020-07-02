@@ -47,13 +47,15 @@ namespace nimbus{
             double _desc_sr;
         
         public:
-            Features(ros::NodeHandle nh, double normal_sr, double descriptor_sr, double keypoint_sr);
+            Features(ros::NodeHandle nh);
             ~Features();
             // Variables
             typename pcl::PointCloud<PointType>::Ptr keypoints;
             typename pcl::PointCloud<NormalType>::Ptr normals;
             typename pcl::PointCloud<DescriptorType>::Ptr descriptor;
             typename pcl::PointCloud<pcl::ReferenceFrame>::Ptr board;
+
+            void updateSearchRadius(double ks, double ns, double ds); 
             //Functions
             void keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res);
             /**
@@ -74,15 +76,17 @@ namespace nimbus{
     };
 }
 template <class PointType, class NormalType, class DescriptorType>
-nimbus::Features<PointType, NormalType, DescriptorType>::Features(ros::NodeHandle nh, 
-                                                                  double normal_sr, 
-                                                                  double descriptor_sr, 
-                                                                  double keypoint_sr): _nh(nh),
-                                                                                       _norm_sr(normal_sr),
-                                                                                       _desc_sr(descriptor_sr),
-                                                                                       _keypoint_sr(keypoint_sr){}
+nimbus::Features<PointType, NormalType, DescriptorType>::Features(ros::NodeHandle nh): _nh(nh){}
 template <class PointType, class NormalType, class DescriptorType>
 nimbus::Features<PointType, NormalType, DescriptorType>::~Features(){}
+
+template <class PointType, class NormalType, class DescriptorType>
+void nimbus::Features<PointType, NormalType, DescriptorType>::updateSearchRadius(double ks, double ns, double ds)
+{
+    this->_keypoint_sr = ks;
+    this->_norm_sr = ns;
+    this->_desc_sr = ds;
+}
 
 template <class PointType, class NormalType, class DescriptorType>
 void nimbus::Features<PointType, NormalType, DescriptorType>::keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res)
