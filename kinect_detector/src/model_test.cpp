@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <pthread.h>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -13,6 +14,19 @@
 #include <boost/foreach.hpp>
 
 double size_x, size_y, size_z, px, py, pz, roll, pitch, yaw;
+static volatile bool save_cloud = false;
+
+static void* user_thread(void*)
+{
+    while (!save_cloud && ros::ok())
+    {
+        if(std::cin.get() == 'q') 
+        {
+            save_cloud = true;
+        }
+        
+    }    
+}
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "model_test_node");
@@ -47,14 +61,25 @@ int main(int argc, char** argv){
     cloud->header.frame_id = "model";
     ros::Rate r(1);
 
-    while (ros::ok())
-    {
+    // pthread_t key_thread;
+    // (void) pthread_create(&key_thread, 0, user_thread, 0);
 
+    while (ros::ok() && !save_cloud)
+    {
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);
 
         r.sleep();
+
+        //TODO Save upon key stroke
+        ROS_INFO("Saving Point Cloud");
+        pcl::io::savePCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *cloud);
     }
-    ROS_ERROR("000000000000000000000000000000000");
+
+    // (void) pthread_join(key_thread, NULL);
+    // ROS_INFO("Saving Point Cloud");
+    // pcl::io::savePCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *cloud);
+
+
     return 0;
 }
