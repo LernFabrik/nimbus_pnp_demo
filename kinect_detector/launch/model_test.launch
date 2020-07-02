@@ -1,7 +1,21 @@
 <?xml version="1.0"?>
 <launch>
+
+    <arg name="droll" default="90" />
+    <arg name="dpitch" default="0" />
+    <arg name="dyaw" default="0" />
     
-    <node name="model_test_node" pkg="kinect_detector" type="model_test_node" output="screen"/>
+    <node name="model_test_node" pkg="kinect_detector" type="model_test_node" output="screen">
+        <param name="size_x" type="double" value = "0.235" />
+        <param name="size_y" type="double" value = "0.07" />
+        <param name="size_z" type="double" value = "0.125" />
+        <param name="px" type="double" value = "0" />
+        <param name="py" type="double" value = "0" />
+        <param name="pz" type="double" value = "1" />
+        <param name="roll" type="double" value = "$(eval arg('droll') * 3.1415 / 180)" />
+        <param name="pitch" type="double" value = "$(eval arg('dpitch') * 3.1415 / 180)" />
+        <param name="yaw" type="double" value = "$(eval arg('dyaw') * 3.1415 / 180)" />
+    </node>
     
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map model 100" />
 
