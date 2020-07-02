@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <node name="model_test_node" pkg="kinect_detector" type="model_test_node" output="screen"/>
+    
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map model 100" />
+
+</launch>

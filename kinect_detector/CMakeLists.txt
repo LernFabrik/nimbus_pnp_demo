@@ -63,6 +63,10 @@ add_executable(kinect_detector_node src/main.cpp)
 add_dependencies(kinect_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(kinect_detector_node recognition ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(model_test_node src/model_test.cpp)
+add_dependencies(model_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(model_test_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 add_executable(model_training_node src/train_model.cpp)
 add_dependencies(model_training_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(model_training_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
