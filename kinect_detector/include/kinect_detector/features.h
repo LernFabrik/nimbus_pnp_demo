@@ -45,6 +45,7 @@ namespace nimbus{
             double _keypoint_sr;
             double _norm_sr;
             double _desc_sr;
+            double _board_sr;
         
         public:
             Features(ros::NodeHandle nh);
@@ -55,7 +56,7 @@ namespace nimbus{
             typename pcl::PointCloud<DescriptorType>::Ptr descriptor;
             typename pcl::PointCloud<pcl::ReferenceFrame>::Ptr board;
 
-            void updateSearchRadius(double ks, double ns, double ds); 
+            void updateSearchRadius(double ks, double ns, double ds, double bs); 
             //Functions
             void keypointUniformSampling(const PointCloudTypeConstPtr blob, pcl::PointCloud<PointType> &res);
             /**
@@ -81,11 +82,12 @@ template <class PointType, class NormalType, class DescriptorType>
 nimbus::Features<PointType, NormalType, DescriptorType>::~Features(){}
 
 template <class PointType, class NormalType, class DescriptorType>
-void nimbus::Features<PointType, NormalType, DescriptorType>::updateSearchRadius(double ks, double ns, double ds)
+void nimbus::Features<PointType, NormalType, DescriptorType>::updateSearchRadius(double ks, double ns, double ds, double bs)
 {
     this->_keypoint_sr = ks;
     this->_norm_sr = ns;
     this->_desc_sr = ds;
+    this->_board_sr = bs;
 }
 
 template <class PointType, class NormalType, class DescriptorType>
@@ -156,7 +158,7 @@ void nimbus::Features<PointType, NormalType, DescriptorType>::cloudBoardLocalRef
 {
     pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
     rf_est.setFindHoles(true);
-    rf_est.setRadiusSearch(0.02);
+    rf_est.setRadiusSearch(_board_sr);
     rf_est.setInputCloud(this->keypoints);
     rf_est.setInputNormals(this->normals);
     rf_est.setSearchSurface(blob);

@@ -18,7 +18,7 @@ nimbus::Recognition::~Recognition(){}
 
 void nimbus::Recognition::constructModelParam()
 {
-    _features.updateSearchRadius(0.01, 0.01, 0.01);
+    _features.updateSearchRadius(0.01, 0.01, 0.01, 0.01);
     
     _model.reset(new pcl::PointCloud<pcl::PointXYZ>());
     _model_normals.reset(new pcl::PointCloud<pcl::Normal>());
@@ -43,7 +43,7 @@ void nimbus::Recognition::constructModelParam()
 void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
 {
     // Call model contructor before this.
-    _features.updateSearchRadius(0.03, 0.03, 0.03);
+    _features.updateSearchRadius(0.01, 0.01, 0.01, 0.01);
     _features.extraction(blob);
 
     model_scene_corr.reset(new pcl::Correspondences());
@@ -59,13 +59,13 @@ void nimbus::Recognition::correspondences(const pcl::PointCloud<pcl::PointXYZ>::
         }
 
         int found_neighs = match_search.nearestKSearch(_features.descriptor->at(i), 1, neigh_indices, neigh_sqrt_distance);
-        if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.25f)
+        if(found_neighs == 1 && neigh_sqrt_distance[0] < 0.15f)
         {
             pcl::Correspondence corr(neigh_indices[0], static_cast<int> (i), neigh_sqrt_distance[0]);
             model_scene_corr->push_back(corr);
         }
     }
-    // std::cout << "Correspondences found at: " << j << "= " << model_scene_corr[j]->size () << std::endl;
+    std::cout << "------------------------------ Correspondences found at: " << model_scene_corr->size () << std::endl;
 }
 
 void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr blob)
@@ -83,7 +83,7 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::Con
     pcl::Hough3DGrouping<pcl::PointXYZ, pcl::PointXYZ, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
    
     clusterer.setHoughBinSize (0.017);
-    clusterer.setHoughThreshold (5.0);
+    clusterer.setHoughThreshold (2.5);
     clusterer.setUseInterpolation (true);
     clusterer.setUseDistanceWeight (false);
 
@@ -111,6 +111,8 @@ void nimbus::Recognition::cloudHough3D(const pcl::PointCloud<pcl::PointXYZ>::Con
         }
         this->registrationICP(instances, cloud, rototranslations, clusters);
     }
+
+    visualization(cloud, rototranslations, clusters);
 }
 
 void nimbus::Recognition::registrationICP (const std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> instances,
@@ -141,11 +143,11 @@ void nimbus::Recognition::registrationICP (const std::vector<pcl::PointCloud<pcl
         icp_tf = icp.getFinalTransformation();
         // ToDo Why?
         icp_final_tf = icp_tf * rototranslations[i];
-        // if(icp.hasConverged()){
-        //     ROS_ERROR("!Alligned!");
-        // }else{
-        //     ROS_ERROR("!NOT Alligned!");
-        // }
+        if(icp.hasConverged()){
+            ROS_ERROR("!Alligned!");
+        }else{
+            ROS_ERROR("!NOT Alligned!");
+        }
         rototransList.push_back(icp_final_tf);
     }
     this->hypothesisVerification(cloud, registered_instances, rototransList);
@@ -206,13 +208,12 @@ void nimbus::Recognition::publishPose(std::vector<bool> mask, std::vector<Eigen:
             ros::Duration(5.0).sleep();
         }
         else{
-            // std::cout << "Instance " << i << " is bad!" << std::endl;
+            std::cout << "Instance " << i << " is bad!" << std::endl;
         }
     }
 }
 
-void nimbus::Recognition::visualization (const int num, 
-                    const pcl::PointCloud<pcl::PointXYZ>::Ptr  scene,
+void nimbus::Recognition::visualization (const pcl::PointCloud<pcl::PointXYZ>::Ptr  scene,
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
                     std::vector<pcl::Correspondences> clustered_corrs){
     pcl::visualization::PCLVisualizer viewer("Correspondence");

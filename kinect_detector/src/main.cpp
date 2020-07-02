@@ -80,12 +80,10 @@ class Detector : public nimbus::Recognition{
                     _newCloud = false;
                     PointCloud::Ptr blob (new PointCloud());
 
-                    int queue_size = _util._queue.size();
-                    while (!(queue_size > 2) ){
-                        queue_size = _util._queue.size();
-                        ros::spinOnce();
+                    _util._queue.dequeue(*blob);
+                    while ((_util._queue.size() > 10) ){
+                        _util._queue.dequeue(*blob);
                     }
-                    _util.meanFilter(*blob);
                     
                     this->cloudHough3D(blob);
 

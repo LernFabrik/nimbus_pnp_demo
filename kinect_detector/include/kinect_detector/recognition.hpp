@@ -73,8 +73,7 @@ namespace nimbus{
                                         std::vector<pcl::PointCloud<pcl::PointXYZ>::ConstPtr> registered_instances,
                                         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations);
             void publishPose(std::vector<bool> mask, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations);
-            void visualization (const int num, 
-                    const pcl::PointCloud<pcl::PointXYZ>::Ptr  scene,
+            void visualization (const pcl::PointCloud<pcl::PointXYZ>::Ptr  scene,
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations,
                     std::vector<pcl::Correspondences> clustered_corrs);
     };
