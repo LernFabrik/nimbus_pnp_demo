@@ -144,7 +144,11 @@ void nimbus::Recognition::registrationICP (const std::vector<pcl::PointCloud<pcl
         // ToDo Why?
         icp_final_tf = icp_tf * rototranslations[i];
         if(icp.hasConverged()){
-            ROS_ERROR("!Alligned!");
+            ROS_WARN("!Alligned!");
+            std::cout << "Score: " << icp.getFitnessScore() << std::endl;
+            std::cout << "ICP Transformation: " << icp_tf << std::endl;
+            std::cout << "ICP Rototraslation: " << rototranslations[i] << std::endl;
+            std::cout << "ICP Final Transformation: " << icp_final_tf << std::endl;
         }else{
             ROS_ERROR("!NOT Alligned!");
         }

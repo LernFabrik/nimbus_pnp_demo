@@ -10,8 +10,15 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/common/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/keypoints/iss_3d.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+
+#include <pcl/io/vtk_io.h>
+#include <vtkPolyDataMapper.h>
+#include <pcl/apps/render_views_tesselated_sphere.h>
 
 double size_x, size_y, size_z, px, py, pz, roll, pitch, yaw;
 static volatile bool save_cloud = false;
@@ -26,6 +33,36 @@ static void* user_thread(void*)
         }
         
     }    
+}
+
+double
+computeCloudResolution(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& cloud)
+{
+	double resolution = 0.0;
+	int numberOfPoints = 0;
+	int nres;
+	std::vector<int> indices(2);
+	std::vector<float> squaredDistances(2);
+	pcl::search::KdTree<pcl::PointXYZ> tree;
+	tree.setInputCloud(cloud);
+
+	for (size_t i = 0; i < cloud->size(); ++i)
+	{
+		if (! pcl_isfinite((*cloud)[i].x))
+			continue;
+
+		// Considering the second neighbor since the first is the point itself.
+		nres = tree.nearestKSearch(i, 2, indices, squaredDistances);
+		if (nres == 2)
+		{
+			resolution += sqrt(squaredDistances[1]);
+			++numberOfPoints;
+		}
+	}
+	if (numberOfPoints != 0)
+		resolution /= numberOfPoints;
+
+	return resolution;
 }
 
 int main(int argc, char** argv){
@@ -69,17 +106,14 @@ int main(int argc, char** argv){
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);
 
+        pcl::apps::RenderViewsTesselatedSphere rendered_view
         r.sleep();
-
         //TODO Save upon key stroke
-        ROS_INFO("Saving Point Cloud");
-        pcl::io::savePCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *cloud);
+        // ROS_INFO("Saving Point Cloud");
+        // pcl::io::savePCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *cloud);
     }
-
     // (void) pthread_join(key_thread, NULL);
     // ROS_INFO("Saving Point Cloud");
     // pcl::io::savePCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *cloud);
-
-
     return 0;
 }
