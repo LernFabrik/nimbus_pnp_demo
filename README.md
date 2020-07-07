@@ -3,9 +3,13 @@
 
 # nimbus_pnp_demo
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PCL: version-1.8](https://img.shields.io/badge/PCL-version%3A%201.8-yellowgreen)](https://img.shields.io/badge/PCL-version%3A%201.8-yellowgreen)
+
+
 |Branch    | ROS Distro | Status (travis)  | Github Action |
 |----------|------------|-----------|----------------------|
-|master    | Melodic    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)| ![CI](https://github.com/prachandabhanu/nimbus_pnp_demo/workflows/CI/badge.svg) |
+|master    | [![ROS: Melodic](https://img.shields.io/badge/ROS-Melodic-blue)](https://img.shields.io/badge/ROS-Melodic-blue)    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)| ![CI](https://github.com/prachandabhanu/nimbus_pnp_demo/workflows/CI/badge.svg) |
 
 # Setting up the evnironment
 Both sourcing and executing the script will run the commands in the script line by line, as if you typed those commands by hand line by line.
