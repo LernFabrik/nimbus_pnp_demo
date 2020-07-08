@@ -41,8 +41,8 @@ nimbus::BoxDetector<PointType>::zAxisLimiter(const boost::shared_ptr<const pcl::
                                              double max, double min,
                                              pcl::PointCloud<pcl::PointXYZ> &res)
 {
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::PointCloud<pcl::PointXYZI>::Ptr result (new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr result (new pcl::PointCloud<pcl::PointXYZ>());
     pcl::copyPointCloud(*blob, *cloud); 
     // To Carry other info
     pcl::copyPointCloud(*blob, *result);
