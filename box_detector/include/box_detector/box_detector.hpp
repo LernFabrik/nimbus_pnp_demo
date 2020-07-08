@@ -48,7 +48,14 @@ namespace nimbus
             void zAxisLimiter(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
                               double max, double min,
                               pcl::PointCloud<pcl::PointXYZ> &res);
-            void box3DCentroid(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob);
+            /**
+             * @brief Calculate the Centroid of the box
+             * @param blob Input Cloud
+             * @param centroid Return calculated Centroid
+             */
+            void box3DCentroid(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+                               Eigen::Matrix<double, 4, 1> &centroid);
+
     };
 
 } // namespace nimbus

@@ -35,6 +35,8 @@ nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){}
 template <class PointType>
 nimbus::BoxDetector<PointType>::~BoxDetector(){}
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class PointType>
 void 
 nimbus::BoxDetector<PointType>::zAxisLimiter(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
@@ -68,4 +70,38 @@ nimbus::BoxDetector<PointType>::zAxisLimiter(const boost::shared_ptr<const pcl::
 
     // Copy to result
     pcl::copyPointCloud(*result, res);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
+void 
+nimbus::BoxDetector<PointType>::box3DCentroid(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+                                              Eigen::Matrix<double, 4, 1> &centroid)
+{
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::copyPointCloud(*blob, cloud);
+    if(cloud.points.empty())
+    {
+        ROS_ERROR("Input Point Cloud is empty");
+        return;
+    }
+
+    // Initialize centroid to zero
+    centroid.setZero();
+    // Cloud Dense is false and contain NAN points
+    unsigned cp = 0;
+    for(const auto& point: cloud)
+    {
+        if(!pcl::isFinite(point))
+            continue;
+        
+        centroid[0] += point.x;
+        centroid[1] += point.y;
+        centroid[2] += point.z;
+        ++cp;
+    }
+    centroid /= static_cast<double>(cp);
+    centroid[3] = 1;
+    ROS_DEBUG_NAMED("Computed 3D Centroid","Calculated Points: %f", static_cast<double>(cp));
 }

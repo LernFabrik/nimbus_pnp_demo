@@ -55,13 +55,16 @@ int main(int argc, char** argv){
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
     pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
 
-    
+    Eigen::Matrix<double, 4, 1> centroid;
+
     ros::Rate r(1);
     while (ros::ok())
     {
         pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
         updateParm(nh);
         bDetector.zAxisLimiter(blob, distance_max, distance_min, *cloud);
+        bDetector.box3DCentroid(cloud, centroid);
+        ROS_INFO("The Centroid x: %f, y: %f, z: %f", centroid[0], centroid[1], centroid[2]);
         cloud->header.frame_id = "model";
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);
