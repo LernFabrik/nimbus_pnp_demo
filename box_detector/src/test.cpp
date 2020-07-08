@@ -21,34 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  * 
- * @file box_detector.hpp
+ * @file test.cpp
  * @author Vishnuprasad Prachandabhanu (vishnu.pbhat93@gmail.com)
  */
 
-#pragma once
+#include <iostream>
+#include <thread>
 
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 
-#include <pcl_ros/point_cloud.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
-#include <boost/foreach.hpp>
 
-namespace nimbus
+#include <box_detector/box_detector.hpp>
+
+double distance_max, distance_min;
+
+void updateParm(ros::NodeHandle nh)
 {
-    template <class PointType>
-    class BoxDetector
-    {
-        private:
-        protected:
-            ros::NodeHandle _nh;
-        public:
-            BoxDetector(ros::NodeHandle nh);
-            ~BoxDetector();
-            void zAxisLimiter(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
-                              double max, double min,
-                              pcl::PointCloud<pcl::PointXYZ> &res);
-            void box3DCentroid(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob);
-    };
+    nh.getParam("distance_max", distance_max);
+    nh.getParam("distance_min", distance_min);
+}
 
-} // namespace nimbus
+
+int main(int argc, char** argv){
+    ros::init(argc, argv, "test_node");
+    ros::NodeHandle nh("~");
+
+    ros::Publisher pub = nh.advertise<sensor_msgs::PointCloud2>("model_point", 5);
+    nimbus::BoxDetector<pcl::PointXYZ> bDetector(nh);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr blob (new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
+
+    
+    ros::Rate r(1);
+    while (ros::ok())
+    {
+        pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
+        updateParm(nh);
+        bDetector.zAxisLimiter(blob, distance_max, distance_min, *cloud);
+        cloud->header.frame_id = "model";
+        pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
+        pub.publish(cloud);
+        r.sleep();
+    }
+    
+    return 0;
+}

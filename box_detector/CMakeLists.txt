@@ -56,3 +56,11 @@ link_directories(
   ${PCL_LIBRARY_DIRS}
 )
 add_definitions(${PCL_DEFINITIONS})
+
+add_library(box_detector src/box_detector.cpp)
+add_dependencies(box_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(test_node src/test.cpp)
+add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_node box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
