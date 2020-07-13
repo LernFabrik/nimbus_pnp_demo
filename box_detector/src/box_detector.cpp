@@ -73,6 +73,46 @@ nimbus::BoxDetector<PointType>::zAxisLimiter(const boost::shared_ptr<const pcl::
     pcl::copyPointCloud(*result, res);
 }
 
+template <class PointType>
+void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< const pcl::PointCloud<PointType>> blob, 
+                    int width, int height, float perW, float perH,
+                    pcl::PointCloud<PointType> &res)
+{
+    int hLower = (height*perH)/2;
+    int hUpper = (height - hLower);
+    int wLower = (width*perW)/2;
+    int wUpper = width - wLower;
+    int pCounter = 0;
+    //res.width = width-wLower-wUpper;
+    //res.height = height-hLower-hUpper;
+    for(int i = 0; i < height; i++){
+        std::vector<float> tempX;
+        std::vector<float> tempY;
+        std::vector<float> tempZ;
+        for(int j = 0; j < width; j++){
+            if((i > hLower & i < hUpper) & (j > wLower & j < wUpper)){
+                tempX.push_back(blob->points[pCounter].x);
+                tempY.push_back(blob->points[pCounter].y);
+                tempZ.push_back(blob->points[pCounter].z);
+                pCounter ++;
+            }else pCounter ++;
+        }
+        if((i > hLower & i < hUpper)){
+            for(int i = 0; i < tempX.size(); i++){
+                PointType temP;
+                temP.x = tempX[i];
+                temP.y = tempY[i];
+                temP.z = tempZ[i];
+                res.points.push_back(temP);
+            }
+        }
+    }
+    res.header   = blob->header;
+    res.is_dense = blob->is_dense;
+    res.sensor_orientation_ = blob->sensor_orientation_;
+    res.sensor_origin_ = blob->sensor_origin_;
+}
+
 
 template <class PointType>
 bool 
@@ -358,9 +398,5 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
 
     raw_yaw = atan((Ymax - Y_xMin) / (X_yMax - Xmin));
 
-    ROS_INFO("Calulated raw yaw: %f", raw_yaw);
-
-    raw_yaw = atan((Y_xMax - Ymin) / (Xmax - X_yMin));
-
-    ROS_INFO("Calulated raw yaw: %f", raw_yaw);    
+    yaw = raw_yaw;  
 }
