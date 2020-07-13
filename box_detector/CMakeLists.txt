@@ -65,6 +65,10 @@ add_executable(test_node src/test.cpp)
 add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_node box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(box_detector_node src/box_detector_node.cpp)
+add_dependencies(box_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(box_detector_node box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 add_executable(allign_model_node src/allign_model.cpp)
 add_dependencies(allign_model_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(allign_model_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
