@@ -106,7 +106,7 @@ int main(int argc, char** argv){
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);
 
-        pcl::apps::RenderViewsTesselatedSphere rendered_view
+        // pcl::apps::RenderViewsTesselatedSphere rendered_view
         r.sleep();
         //TODO Save upon key stroke
         // ROS_INFO("Saving Point Cloud");
