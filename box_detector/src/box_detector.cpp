@@ -57,7 +57,7 @@ nimbus::BoxDetector<PointType>::zAxisLimiter(const boost::shared_ptr<const pcl::
         return;
     }
 
-    for (size_t i; i < cloud->points.size(); ++i)
+    for (size_t i = 0; i < cloud->points.size(); ++i)
     {
         if((max >= cloud->points[i].z) && (min <= cloud->points[i].z))
         {
@@ -295,4 +295,72 @@ nimbus::BoxDetector<PointType>::solveBoxParameters (const Eigen::Matrix3f &covar
         curvature = std::abs(eigen_value / eigen_sum);
     else
         curvature = 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
+void 
+nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
+                                       float &yaw)
+{
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::copyPointCloud(*blob, cloud);
+
+    //unsigned int Xmin_indice = 0, Xmax_indice = 0, Ymin_indice = 0, Ymax_indice = 0;
+    float Xmax, Xmin, X_yMax, X_yMin;
+    float Ymax, Ymin, Y_xMax, Y_xMin;
+
+    float raw_yaw = 0;
+
+    size_t i = 0;
+    Xmax = Xmin = cloud.points[i].x;
+    Ymax = Ymin = cloud.points[i].y;
+    i += 1;
+    while (std::isnan(Xmax))
+    {
+        Xmax = Xmin = cloud.points[i].x;
+        Ymax = Ymin = cloud.points[i].y;
+        i += 1;
+    }
+
+    // Calculate Maximum and Minimum values in X and Y axis
+    for(size_t j = i; j < cloud.points.size(); ++j)
+    {
+        pcl::PointXYZ point = cloud.points[j];
+        if(!pcl::isFinite(point)) continue;
+
+        if(cloud.points[j].x < Xmin)
+        {
+            Xmin = cloud.points[j].x;
+            // Xmin_indice = static_cast<int>(i);
+            Y_xMin = cloud.points[j].y;
+        }
+        if(cloud.points[j].x > Xmax)
+        {
+            Xmax = cloud.points[j].x;
+            // Xmax_indice = static_cast<int>(i);
+            Y_xMax =cloud.points[j].y;
+        }
+        if(cloud.points[j].y < Ymin)
+        {
+            Ymin = cloud.points[j].y;
+            // Ymin_indice = static_cast<int>(i);
+            X_yMin = cloud.points[j].x;
+        }
+        if(cloud.points[j].y > Ymax)
+        {
+            Ymax = cloud.points[j].y;
+            // Ymax_indice = static_cast<int>(i);
+            X_yMax = cloud.points[j].x;
+        }
+    }
+
+    raw_yaw = atan((Ymax - Y_xMin) / (X_yMax - Xmin));
+
+    ROS_INFO("Calulated raw yaw: %f", raw_yaw);
+
+    raw_yaw = atan((Y_xMax - Ymin) / (Xmax - X_yMin));
+
+    ROS_INFO("Calulated raw yaw: %f", raw_yaw);    
 }

@@ -91,6 +91,8 @@ namespace nimbus
 
             void solveBoxParameters (const Eigen::Matrix3f &covariance_matrix,
                                        float &nx, float &ny, float &nz, float &curvature);
+            
+            void boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, float &yaw);
     };
 
 } // namespace nimbus

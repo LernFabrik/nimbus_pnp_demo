@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(box_detector)
 
 add_compile_options(-std=c++11)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Debug)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Find catkin macros and libraries
@@ -64,3 +64,7 @@ target_link_libraries(box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_executable(test_node src/test.cpp)
 add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(test_node box_detector ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(allign_model_node src/allign_model.cpp)
+add_dependencies(allign_model_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(allign_model_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})

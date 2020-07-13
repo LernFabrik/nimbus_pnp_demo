@@ -53,7 +53,6 @@ int main(int argc, char** argv){
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr blob (new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
 
     Eigen::Vector4f box_param;
     float curvature;
@@ -61,12 +60,14 @@ int main(int argc, char** argv){
     ros::Rate r(1);
     while (ros::ok())
     {
-        pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif.pcd", *blob);
+        pcl::io::loadPCDFile("/home/vishnu/ros_ws/test/box_modif2.pcd", *blob);
         updateParm(nh);
         bDetector.zAxisLimiter(blob, distance_max, distance_min, *cloud);
         cloud->is_dense = false;
         bDetector.computePointNormal(cloud, box_param, curvature);
         ROS_INFO("The Centroid a: %f, b: %f, c: %f, d: %f, curvature: %f", box_param[0], box_param[1], box_param[2], box_param[3], curvature);
+        float yaw;
+        bDetector.boxYaw(cloud, yaw);
         cloud->header.frame_id = "model";
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);
