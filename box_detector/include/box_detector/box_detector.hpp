@@ -60,6 +60,9 @@ namespace nimbus
             void zAxisLimiter(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
                               double max, double min,
                               pcl::PointCloud<pcl::PointXYZ> &res);
+            void outlineRemover(const boost::shared_ptr< const pcl::PointCloud<PointType>> blob, 
+                                int width, int height, float perW, float perH,
+                                pcl::PointCloud<PointType> &res);
             /**
              * @brief Compute the Least-Squares plane fit for a given set of points, using their indices,
              * and return the estimated plane parameters together with the surface curvature. 
