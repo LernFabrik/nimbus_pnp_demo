@@ -115,14 +115,14 @@ class Detector{
 
                     _queue.enqueue(*blob);
                     // Queue sheild
-                    ROS_INFO("Queue size: %d", _queue.size());
                     if(_queue.size() < 5) continue;
-                    ROS_WARN("Queue size: %d", _queue.size());
                     boxDectect->meanFilter(_queue, *meanCloud);
-                    
+                    ROS_WARN("Queue size: %d", _queue.size());
+
                     //// Core Operation ////
                     boxDectect->outlineRemover(meanCloud, blob->width, blob->height, per_width, per_height, *rCloud);
                     boxDectect->zAxisLimiter(rCloud, distance_max, distance_min, *cloud);
+                    
                     boxDectect->box3DCentroid(cloud, centroid);
                     boxDectect->boxYaw(cloud, yaw);
                     boxDectect->computePointNormal(cloud, param_norm, curvature);

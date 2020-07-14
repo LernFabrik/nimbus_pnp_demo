@@ -78,6 +78,7 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
                     int width, int height, float perW, float perH,
                     pcl::PointCloud<PointType> &res)
 {
+    ROS_INFO("Test 1");
     int hLower = (height*perH)/2;
     int hUpper = (height - hLower);
     int wLower = (width*perW)/2;
@@ -85,6 +86,7 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
     int pCounter = 0;
     //res.width = width-wLower-wUpper;
     //res.height = height-hLower-hUpper;
+    ROS_INFO("Test 1");
     for(int i = 0; i < height; i++){
         std::vector<float> tempX;
         std::vector<float> tempY;
@@ -107,6 +109,7 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
             }
         }
     }
+    ROS_INFO("Test 1");
     res.header   = blob->header;
     res.is_dense = blob->is_dense;
     res.sensor_orientation_ = blob->sensor_orientation_;
@@ -442,25 +445,22 @@ nimbus::BoxDetector<PointType>:: meanFilter(pcl::SynchronizedQueue<pcl::PointClo
             meanCloud.points[count].y += points.y;
             meanCloud.points[count].z += points.z;
             indice_count[count] += 1;
-            ROS_INFO("X value: %f , indice: %d, at: %d", meanCloud.points[count].x, indice_count[count], count);
             ++count;
         }
         queue.dequeue(cloud);
     }
 
-    int count = 0;
+    int j = 0;
     for(const auto& points: meanCloud)
     {
         if(!pcl::isFinite(points)){
-            ++count;
+            ++j;
             continue;
         }
-        meanCloud.points[count].x /= static_cast<int>(indice_count[count]);
-        meanCloud.points[count].y /= static_cast<int>(indice_count[count]);
-        meanCloud.points[count].z /= static_cast<int>(indice_count[count]);
-        ROS_INFO("X value: %f , indice: %d, at: %d", meanCloud.points[count].x, indice_count[count], count);
-        ++count;
+        meanCloud.points[j].x /= static_cast<int>(indice_count[j]);
+        meanCloud.points[j].y /= static_cast<int>(indice_count[j]);
+        meanCloud.points[j].z /= static_cast<int>(indice_count[j]);
+        ++j;
     }
     pcl::copyPointCloud(meanCloud, res);
-
 }
