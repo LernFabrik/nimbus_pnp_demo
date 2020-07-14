@@ -33,6 +33,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+#include <pcl/io/impl/synchronized_queue.hpp>
 
 #include <pcl/search/search.h>
 #include <pcl/common/common.h>
@@ -60,9 +61,12 @@ namespace nimbus
             void zAxisLimiter(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
                               double max, double min,
                               pcl::PointCloud<pcl::PointXYZ> &res);
+
             void outlineRemover(const boost::shared_ptr< const pcl::PointCloud<PointType>> blob, 
                                 int width, int height, float perW, float perH,
                                 pcl::PointCloud<PointType> &res);
+
+            void meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, pcl::PointCloud<pcl::PointXYZ> &res);
             /**
              * @brief Compute the Least-Squares plane fit for a given set of points, using their indices,
              * and return the estimated plane parameters together with the surface curvature. 

@@ -34,6 +34,7 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 
 #include <pcl_ros/point_cloud.h>
+#include <pcl/io/impl/synchronized_queue.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
@@ -49,6 +50,8 @@ class Detector{
         ros::Subscriber _sub;
         ros::Publisher _pub;
         PointCloud::Ptr _cloud;
+        pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> _queue;
+
         bool _newCloud = false;
         std::mutex cloud_lock;
         double distance_max, distance_min, per_width, per_height;
@@ -103,14 +106,22 @@ class Detector{
                     _newCloud = false;
                     PointCloud::Ptr blob (new PointCloud());
                     PointCloud::Ptr rCloud (new PointCloud());
+                    PointCloud::Ptr meanCloud (new PointCloud());
                     PointCloud::Ptr cloud (new PointCloud());
 
                     std::unique_lock<std::mutex> lock(cloud_lock);
                     pcl::copyPointCloud(*_cloud, *blob);
                     lock.unlock();
 
+                    _queue.enqueue(*blob);
+                    // Queue sheild
+                    ROS_INFO("Queue size: %d", _queue.size());
+                    if(_queue.size() < 5) continue;
+                    ROS_WARN("Queue size: %d", _queue.size());
+                    boxDectect->meanFilter(_queue, *meanCloud);
+                    
                     //// Core Operation ////
-                    boxDectect->outlineRemover(blob, blob->width, blob->height, per_width, per_height, *rCloud);
+                    boxDectect->outlineRemover(meanCloud, blob->width, blob->height, per_width, per_height, *rCloud);
                     boxDectect->zAxisLimiter(rCloud, distance_max, distance_min, *cloud);
                     boxDectect->box3DCentroid(cloud, centroid);
                     boxDectect->boxYaw(cloud, yaw);
