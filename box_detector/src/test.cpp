@@ -67,7 +67,7 @@ int main(int argc, char** argv){
         bDetector.computePointNormal(cloud, box_param, curvature);
         ROS_INFO("The Centroid a: %f, b: %f, c: %f, d: %f, curvature: %f", box_param[0], box_param[1], box_param[2], box_param[3], curvature);
         float yaw;
-        bDetector.boxYaw(cloud, yaw);
+        //bDetector.boxYaw(cloud, yaw);
         cloud->header.frame_id = "model";
         pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);
         pub.publish(cloud);

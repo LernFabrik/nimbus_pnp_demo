@@ -26,13 +26,27 @@
  */
 
 #include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include <pcl/common/eigen.h>
 #include <box_detector/box_detector.hpp>
 
 template class nimbus::BoxDetector<pcl::PointXYZ>;
 
 template <class PointType>
-nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){}
+nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){
+    _pub_marker = _nh.advertise<visualization_msgs::Marker> ("bounding_box", 1);
+    _marker.header.frame_id = "camera";
+    _marker.ns = "basic_shapes";
+    _marker.id = 0;
+    _marker.type = _shape;
+    _marker.action = visualization_msgs::Marker::ADD;
+    _marker.color.r = 0.0f;
+    _marker.color.g = 1.0f;
+    _marker.color.b = 0.0f;
+    _marker.color.a = 1.0;
+}
 template <class PointType>
 nimbus::BoxDetector<PointType>::~BoxDetector(){}
 
@@ -344,7 +358,8 @@ nimbus::BoxDetector<PointType>::solveBoxParameters (const Eigen::Matrix3f &covar
 
 template <class PointType>
 void 
-nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
+nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+                                       const Eigen::Vector4f &centroid,
                                        float &yaw)
 {
     pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -401,7 +416,19 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
 
     raw_yaw = atan((Ymax - Y_xMin) / (X_yMax - Xmin));
 
-    yaw = raw_yaw;  
+    yaw = raw_yaw;
+
+    _marker.lifetime = ros::Duration(); 
+    _marker.pose.position.x = centroid[0];
+    _marker.pose.position.y = centroid[1];
+    _marker.pose.position.z = centroid[2];
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    _marker.pose.orientation = tf2::toMsg(q);
+    _marker.scale.x = std::abs(Xmax - Xmin);
+    _marker.scale.y = std::abs(Ymax - Ymin);
+    _marker.scale.z = 0.001;
+    _pub_marker.publish(_marker);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,55 +439,51 @@ nimbus::BoxDetector<PointType>:: meanFilter(pcl::SynchronizedQueue<pcl::PointClo
 {
     if (queue.isEmpty()) return;
     
-    std::vector<int> indice_count;
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    pcl::PointCloud<pcl::PointXYZ> meanCloud;
-    pcl::PointCloud<pcl::PointXYZ> tempCloud;
-
-    queue.dequeue(cloud);
-    meanCloud.header   = cloud.header;
-    meanCloud.width    = cloud.width;
-    meanCloud.height   = cloud.height;
-    meanCloud.is_dense = cloud.is_dense;
-    meanCloud.sensor_orientation_ = cloud.sensor_orientation_;
-    meanCloud.sensor_origin_ = cloud.sensor_origin_;
-    meanCloud.points.resize(cloud.points.size());
-    indice_count.resize(meanCloud.size());
+    typename pcl::PointCloud<PointType>::Ptr tempC (new pcl::PointCloud<PointType>());
+    queue.dequeue(*tempC);
+    int width = tempC->width;
+    int height = tempC->height;
+    std::vector<float> conf(width*height, 0);
+    std::vector<float> mnCounter(width*height, 0);
+    std::vector<float> addX(width*height, 0);
+    std::vector<float> addY(width*height, 0);
+    std::vector<float> addZ(width*height, 0);
+    //Point_Cloud sum;
     
-    while(!queue.isEmpty())
-    {
-        int count = 0;
-        for(const auto& points: cloud)
-        {
-            if(!pcl::isFinite(points))
-            {
-                indice_count[count] += 0;
-                ++count;
-                meanCloud.points[count].x = NAN;
-                meanCloud.points[count].y = NAN;
-                meanCloud.points[count].z = NAN;
-                continue;
-            }
-            meanCloud.points[count].x += points.x;
-            meanCloud.points[count].y += points.y;
-            meanCloud.points[count].z += points.z;
-            indice_count[count] += 1;
-            ++count;
-        }
-        queue.dequeue(cloud);
-    }
+    res.width = width;
+    res.height = height;
+    res.header   = tempC->header;
+    res.is_dense = tempC->is_dense;
+    res.sensor_orientation_ = tempC->sensor_orientation_;
+    res.sensor_origin_ = tempC->sensor_origin_;
 
-    int j = 0;
-    for(const auto& points: meanCloud)
-    {
-        if(!pcl::isFinite(points)){
-            ++j;
-            continue;
+    while (!queue.isEmpty()){
+    int i = 0;
+    for(int i = 0; i < tempC->points.size(); i++){
+        if(!std::isnan(tempC->points[i].z)){
+            addX[i] += tempC->points[i].x;
+            addY[i] += tempC->points[i].y;
+            addZ[i] += tempC->points[i].z;
+            mnCounter[i] +=1;
+        }else{
+            conf[i] = 1;
+            mnCounter[i] = 0;
         }
-        meanCloud.points[j].x /= static_cast<int>(indice_count[j]);
-        meanCloud.points[j].y /= static_cast<int>(indice_count[j]);
-        meanCloud.points[j].z /= static_cast<int>(indice_count[j]);
-        ++j;
     }
-    pcl::copyPointCloud(meanCloud, res);
+    queue.dequeue(*tempC);
+    }
+    for(int i = 0; i < mnCounter.size(); i++){
+        PointType temPoint;
+        if(mnCounter[i] == 0){
+            temPoint.x = NAN;
+            temPoint.y = NAN;
+            temPoint.z = NAN;
+        }else{
+            temPoint.x = addX[i] / mnCounter[i];
+            temPoint.y = addY[i] / mnCounter[i];
+            temPoint.z = addZ[i] / mnCounter[i];
+        }
+        res.points.push_back(temPoint);
+    }
+    res.is_dense = false;
 }

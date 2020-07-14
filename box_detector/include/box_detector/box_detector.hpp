@@ -28,6 +28,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -44,8 +45,11 @@ namespace nimbus
     class BoxDetector
     {
         private:
+            visualization_msgs::Marker _marker;
+            uint32_t _shape = visualization_msgs::Marker::CUBE;
         protected:
             ros::NodeHandle _nh;
+            ros::Publisher _pub_marker;
             EIGEN_ALIGN16 Eigen::Matrix3f _covariance_matrix;
             Eigen::Vector4f _centroid;
         public:
@@ -99,7 +103,9 @@ namespace nimbus
             void solveBoxParameters (const Eigen::Matrix3f &covariance_matrix,
                                        float &nx, float &ny, float &nz, float &curvature);
             
-            void boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, float &yaw);
+            void boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
+                        const Eigen::Vector4f &centroid,
+                        float &yaw);
     };
 
 } // namespace nimbus
