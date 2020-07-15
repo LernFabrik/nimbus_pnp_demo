@@ -39,6 +39,9 @@
 #include <pcl/search/search.h>
 #include <pcl/common/common.h>
 
+#define hypotenuse(x, y) (sqrt((x * x) + (y * y)))
+
+
 namespace nimbus
 {
     template <class PointType>
@@ -104,8 +107,16 @@ namespace nimbus
                                        float &nx, float &ny, float &nz, float &curvature);
             
             void boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
+                        const float width, const float length,
                         const Eigen::Vector4f &centroid,
                         float &yaw);
+            void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
+                                  const Eigen::Vector4f &centroid, unsigned int &best);
+            void sideOrientation(const unsigned int best, const float width, const float legth, 
+                                 const Eigen::Matrix<float, 8, 1> corners, float &yaw);
+            void sideOrientation(const float Xmax, const float Ymax,
+                                const float Xmin, const float Ymin,  
+                                const float legth, const float width,float yaw);
     };
 
 } // namespace nimbus

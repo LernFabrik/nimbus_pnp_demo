@@ -123,13 +123,13 @@ class Detector{
                     boxDectect->outlineRemover(meanCloud, blob->width, blob->height, per_width, per_height, *rCloud);
                     boxDectect->zAxisLimiter(rCloud, distance_max, distance_min, *cloud);
                     boxDectect->box3DCentroid(cloud, centroid);
-                    boxDectect->boxYaw(cloud, centroid, yaw);
+                    boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
                     boxDectect->computePointNormal(cloud, param_norm, curvature);
                     ////////////////////////
 
                     /////    Result   ///////
                     ROS_INFO("Centroid x: %f, y:%f, z:%f", centroid[0], centroid[1], centroid[2]);
-                    // ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
+                    ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
                     ROS_INFO("Normal vector a:%f, b:%f, c:%f, d:%f", param_norm[0], param_norm[1], param_norm[2], param_norm[3]);
                     ROS_INFO("Curvature: %f", curvature);
 

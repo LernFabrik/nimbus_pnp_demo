@@ -359,9 +359,12 @@ nimbus::BoxDetector<PointType>::solveBoxParameters (const Eigen::Matrix3f &covar
 template <class PointType>
 void 
 nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+                                       const float width, const float length,
                                        const Eigen::Vector4f &centroid,
                                        float &yaw)
 {
+    Eigen::Matrix<float, 8, 1> corners;
+    unsigned int best_corner;
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::copyPointCloud(*blob, cloud);
 
@@ -383,6 +386,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     }
 
     // Calculate Maximum and Minimum values in X and Y axis
+    corners.setZero();
     for(size_t j = i; j < cloud.points.size(); ++j)
     {
         pcl::PointXYZ point = cloud.points[j];
@@ -390,33 +394,40 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
 
         if(cloud.points[j].x < Xmin)
         {
-            Xmin = cloud.points[j].x;
+            corners[0] = cloud.points[j].x;
             // Xmin_indice = static_cast<int>(i);
-            Y_xMin = cloud.points[j].y;
+            corners[1] = cloud.points[j].y;
         }
         if(cloud.points[j].x > Xmax)
         {
-            Xmax = cloud.points[j].x;
+            corners[2] = cloud.points[j].x;
             // Xmax_indice = static_cast<int>(i);
-            Y_xMax =cloud.points[j].y;
+            corners[3] =cloud.points[j].y;
         }
         if(cloud.points[j].y < Ymin)
         {
-            Ymin = cloud.points[j].y;
+            corners[4] = cloud.points[j].y;
             // Ymin_indice = static_cast<int>(i);
-            X_yMin = cloud.points[j].x;
+            corners[5] = cloud.points[j].x;
         }
         if(cloud.points[j].y > Ymax)
         {
-            Ymax = cloud.points[j].y;
+            corners[6] = cloud.points[j].y;
             // Ymax_indice = static_cast<int>(i);
-            X_yMax = cloud.points[j].x;
+            corners[7] = cloud.points[j].x;
         }
     }
 
-    raw_yaw = atan((Ymax - Y_xMin) / (X_yMax - Xmin));
+    // Calculate the best corner 
+    // Diagonal
+    float d = sqrt((width * width) + (length * length));
+    // std::pair<corners[0], corners[1]> XminC;
+    // std::pair<corners[2], corners[3]> XmaxC;
+    // std::pair<corners[4], corners[5]> YminC;
+    // std::pair<corners[6], corners[7]> YmaxC;
+    this->selectBestCorner(d, corners, centroid, best_corner);
 
-    yaw = raw_yaw;
+    this->sideOrientation(best_corner, width, length, corners, yaw);
 
     _marker.lifetime = ros::Duration(); 
     _marker.pose.position.x = centroid[0];
@@ -431,10 +442,39 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     _pub_marker.publish(_marker);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
+void 
+nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
+                                                 const Eigen::Vector4f &centroid, unsigned int &best)
+{
+    Eigen::Vector4f halfD;
+    halfD.setZero();
+
+    halfD[0] = static_cast<float>(hypotenuse((centroid[0] - corners[0]), (centroid[1] - corners[1])));
+    halfD[1] = static_cast<float>(hypotenuse((centroid[0] - corners[2]), (centroid[1] - corners[3])));
+    halfD[2] = static_cast<float>(hypotenuse((centroid[0] - corners[4]), (centroid[1] - corners[5])));
+    halfD[3] = static_cast<float>(hypotenuse((centroid[0] - corners[6]), (centroid[1] - corners[7])));
+
+    float minValue = std::abs((diagonal/2) - halfD[0]);
+    int indice = 0;
+    for(int i = 1; i < halfD.size(); ++i)
+    {
+        float value = std::abs((diagonal/2) - halfD[i]);
+        if(minValue > value)
+        {
+            minValue = value;
+            indice = i;
+        }
+    }
+    best = indice;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class PointType>
 void 
-nimbus::BoxDetector<PointType>:: meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, 
+nimbus::BoxDetector<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, 
                                             pcl::PointCloud<pcl::PointXYZ> &res)
 {
     if (queue.isEmpty()) return;
@@ -486,4 +526,103 @@ nimbus::BoxDetector<PointType>:: meanFilter(pcl::SynchronizedQueue<pcl::PointClo
         res.points.push_back(temPoint);
     }
     res.is_dense = false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
+void 
+nimbus::BoxDetector<PointType>::sideOrientation(const unsigned int best, const float width, const float lenght, 
+                                                const Eigen::Matrix<float, 8, 1> corners, float &yaw)
+{
+    switch(best)
+    {
+        case 0:
+            // Side for Xmin and neighbouring Points are Ymax and Ymin
+            this->sideOrientation((corners[0] - corners[6]), (corners[1] - corners[7]), 
+                              (corners[0] - corners[4]), (corners[1] - corners[5]), 
+                              lenght, width, yaw);
+            break;
+        case 1:
+            // Side for Xmax and neighbouring Points are Ymax and Ymin
+            this->sideOrientation((corners[2] - corners[6]), (corners[3] - corners[7]), 
+                              (corners[2] - corners[4]), (corners[3] - corners[5]), 
+                              lenght, width, yaw);
+            
+            break;
+        case 2:
+            // Side for Ymin and neighbouring Points are Xmax and Xmin
+            this->sideOrientation((corners[4] - corners[2]), (corners[5] - corners[3]), 
+                              (corners[4] - corners[0]), (corners[5] - corners[1]), 
+                              lenght, width, yaw);
+            break;
+        case 3:
+            // Side for Ymax and neighbouring Points are Xmax and Xmin
+            this->sideOrientation((corners[6] - corners[2]), (corners[7] - corners[3]), 
+                              (corners[6] - corners[0]), (corners[7] - corners[1]), 
+                              lenght, width, yaw);
+            
+            break;  
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
+void 
+nimbus::BoxDetector<PointType>::sideOrientation(const float Xmax, const float Ymax,
+                                                const float Xmin, const float Ymin,
+                                                const float length, const float width,float yaw)
+{
+    // Xmax, Ymax, Xmin and Ymin are the value of X and Y to calculate
+    // respective angle
+    float hMax = static_cast<float>(hypotenuse(Xmax, Ymax));
+    float hMin = static_cast<float>(hypotenuse(Xmin, Ymin));
+    // Select the best side
+    std::vector<float> correction;
+    correction.push_back(std::abs(hMax - length));
+    correction.push_back(std::abs(hMin - length)); 
+    correction.push_back(std::abs(hMax - width));
+    correction.push_back(std::abs(hMin - width));
+
+    float selCorrection = correction[0];
+    int indice = 0;
+    for(int i = 1; i < correction.size(); ++i)
+    {
+        float value = correction[i];
+        if(selCorrection > value)
+        {
+            selCorrection = value;
+            indice = i;
+        }
+        
+    }
+    // Again 4 possibilities: width towards Ymax or Ymin, length towards Ymax or Ymin
+    if(indice == 0)
+    {
+        // Correct length towards Ymax
+        float angle = atan(Ymax/Xmax);
+        yaw = ((90 * M_PI) / 180) - angle;
+    }
+    if(indice == 1)
+    {
+        // Correct lenght towards Ymin
+        float angle = atan(Ymin/Xmin);
+        yaw = ((90 * M_PI) / 180) - angle;
+
+    }
+    if(indice == 2)
+    {
+        // Correct width towards Ymin
+        float angle = atan(Ymax/Xmax);
+        yaw = angle;
+
+    }
+    if(indice == 3)
+    {
+        // Correct width towards Ymin
+        float angle = atan(Ymin/Xmin);
+        yaw =  angle;
+
+    }
 }
