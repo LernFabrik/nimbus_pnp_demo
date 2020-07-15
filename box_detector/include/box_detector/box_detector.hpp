@@ -40,7 +40,7 @@
 #include <pcl/common/common.h>
 
 #define hypotenuse(x, y) (sqrt((x * x) + (y * y)))
-
+#define slope(x1, y1, x2, y2) ((y2 - y1)/(x2 - x1))
 
 namespace nimbus
 {
@@ -112,11 +112,6 @@ namespace nimbus
                         float &yaw);
             void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
                                   const Eigen::Vector4f &centroid, unsigned int &best);
-            void sideOrientation(const unsigned int best, const float width, const float legth, 
-                                 const Eigen::Matrix<float, 8, 1> corners, float &yaw);
-            void sideOrientation(const float Xmax, const float Ymax,
-                                const float Xmin, const float Ymin,  
-                                const float legth, const float width,float yaw);
     };
 
 } // namespace nimbus

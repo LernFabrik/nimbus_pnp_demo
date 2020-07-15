@@ -2,8 +2,8 @@
 <launch>
 
     <node name="box_detector_node" pkg="box_detector" type="box_detector_node" output="screen">
-        <param name="distance_max" type="double" value = "0.85" />
-        <param name="distance_min" type="double" value = "0.8" />
+        <param name="distance_max" type="double" value = "0.865" />
+        <param name="distance_min" type="double" value = "0.75" />
         <param name="per_width" type="double" value = "0.60" />
         <param name="per_height" type="double" value = "0.4" />
     </node>
