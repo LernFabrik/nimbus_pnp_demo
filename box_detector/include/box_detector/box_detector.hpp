@@ -42,6 +42,11 @@
 #define hypotenuse(x, y) (sqrt((x * x) + (y * y)))
 #define slope(x1, y1, x2, y2) ((y2 - y1)/(x2 - x1))
 
+enum class Side: unsigned char{
+    LENGTH = 0,
+    WIDTH = 1,
+};
+
 namespace nimbus
 {
     template <class PointType>
@@ -55,6 +60,7 @@ namespace nimbus
             ros::Publisher _pub_marker;
             EIGEN_ALIGN16 Eigen::Matrix3f _covariance_matrix;
             Eigen::Vector4f _centroid;
+            Side sideSelect;
         public:
             BoxDetector(ros::NodeHandle nh);
             ~BoxDetector();
@@ -110,8 +116,11 @@ namespace nimbus
                         const float width, const float length,
                         const Eigen::Vector4f &centroid,
                         float &yaw);
+            void slopeWRTCoordinate(const float x1, const float y1, const float x2, const float y2, float &angle);
             void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
                                   const Eigen::Vector4f &centroid, unsigned int &best);
+            void selectSide(const float x1, const float y1, const float x2, const float y2,
+                            const float width, const float length, Side &sides);
     };
 
 } // namespace nimbus
