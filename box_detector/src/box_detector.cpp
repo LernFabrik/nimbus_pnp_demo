@@ -431,16 +431,25 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             m = static_cast<float>(slope(corners[0], corners[1], centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
-            if(((angle * 180)/M_PI) < 0) angle = M_PI + angle;
             // Look Ymin side is Length or width
             this->selectSide(corners[0], corners[1], corners[4], corners[5], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                // WOrking
-                yaw = angle - box_max_angle;
+                if(((angle * 180)/M_PI) < 0){
+                    angle = M_PI + angle;
+                    yaw = angle + box_min_angle - (M_PI/2);
+                } else{
+                    yaw =  angle - box_max_angle;
+                }
                 ROS_ERROR ("Xmin - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                yaw =  angle - box_max_angle;
+                if(((angle * 180)/M_PI) < 0){
+                    // Test Complete
+                    angle = M_PI + angle;
+                    yaw =  angle - box_max_angle;
+                } else{
+                    yaw = (M_PI/2) + angle - box_min_angle;
+                }
                 ROS_ERROR ("Xmin - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
@@ -448,17 +457,24 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             m = static_cast<float>(slope(corners[2], corners[3], centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
-            if(((angle * 180)/M_PI) < 0) angle = M_PI + angle;
             // Look Ymin side is Length or width
             this->selectSide(corners[2], corners[3], corners[4], corners[5], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                // Working
-                yaw =  angle + box_max_angle;
+                if(((angle * 180)/M_PI) < 0){
+                    angle = M_PI + angle;
+                    yaw =  angle + box_max_angle;
+                }else{
+                    yaw = angle - box_max_angle;
+                }
                 ROS_ERROR ("Xmax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                // Working
-                yaw = (M_PI/2) + angle - box_min_angle;
+                if(((angle * 180)/M_PI) < 0){
+                    angle = M_PI + angle;
+                    yaw = (M_PI/2) + angle - box_min_angle;
+                }else{
+                    yaw =  angle + box_min_angle - (M_PI/2);
+                }
                 ROS_ERROR ("Xmax - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
@@ -466,7 +482,6 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             m = static_cast<float>(slope(corners[4], corners[5], centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
-            if(((angle * 180)/M_PI) < 0) angle = M_PI + angle;
             // Look Xmin side is Length or width
             this->selectSide(corners[4], corners[5], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
@@ -482,7 +497,6 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             m = static_cast<float>(slope(corners[6], corners[7], centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
-            if(((angle * 180)/M_PI) < 0) angle = M_PI + angle;
             // Look Xmin side is Length or width
             this->selectSide(corners[6], corners[7], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
@@ -490,8 +504,12 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                 ROS_ERROR ("Ymax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                // working
-                yaw = angle - box_max_angle;
+                if(((angle * 180)/M_PI) < 0){
+                    angle = M_PI + angle;
+                    yaw =  angle - box_min_angle;
+                }else{
+                    yaw = (M_PI/2) + angle - box_min_angle;
+                }
                 ROS_ERROR ("Ymax - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
