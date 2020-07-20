@@ -55,7 +55,6 @@ namespace nimbus
         private:
             visualization_msgs::Marker _marker;
             uint32_t _shape = visualization_msgs::Marker::CUBE;
-            unsigned int bestXmin, bestXmax, bestYmin, bestYmax;
         protected:
             ros::NodeHandle _nh;
             ros::Publisher _pub_marker;
@@ -120,7 +119,7 @@ namespace nimbus
                         float &yaw);
             void slopeWRTCoordinate(const float x1, const float y1, const float x2, const float y2, float &angle);
             void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
-                                  const Eigen::Vector4f &centroid);
+                                  const Eigen::Vector4f &centroid, unsigned int &best);
             void selectSide(const float x1, const float y1, const float x2, const float y2,
                             const float width, const float length, Side &sides);
     };

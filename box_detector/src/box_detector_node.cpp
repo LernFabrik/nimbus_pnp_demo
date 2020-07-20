@@ -32,6 +32,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl/io/impl/synchronized_queue.hpp>
@@ -49,6 +51,7 @@ class Detector{
         ros::NodeHandle _nh; 
         ros::Subscriber _sub;
         ros::Publisher _pub;
+        ros::Publisher _pubPose;
         PointCloud::Ptr _cloud;
         pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> _queue;
 
@@ -59,15 +62,22 @@ class Detector{
         nimbus::BoxDetector<pcl::PointXYZ> * boxDectect;
 
         Eigen::Matrix<float, 4, 1> centroid, param_norm;
-        float yaw, curvature;
+        float yaw = 0;
+
+        tf2_ros::StaticTransformBroadcaster broadCaster;
+        geometry_msgs::TransformStamped pose;
         
     public:
         Detector(ros::NodeHandle nh): _nh(nh)
         {
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
+            _pubPose = _nh.advertise<geometry_msgs::TransformStamped>("detected_pose", 10);
 
             this->boxDectect = new nimbus::BoxDetector<pcl::PointXYZ>(_nh);
+
+            pose.header.frame_id = "camera";
+            pose.child_frame_id = "box";
         }
 
         ~Detector(){}
@@ -117,26 +127,26 @@ class Detector{
                     // Queue sheild
                     if(_queue.size() < 5) continue;
                     boxDectect->meanFilter(_queue, *meanCloud);
-                    ROS_WARN("Queue size: %d", _queue.size());
 
                     //// Core Operation ////
                     boxDectect->outlineRemover(meanCloud, blob->width, blob->height, per_width, per_height, *rCloud);
                     boxDectect->zAxisLimiter(rCloud, distance_max, distance_min, *cloud);
                     boxDectect->box3DCentroid(cloud, centroid);
-                    boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
-                    boxDectect->computePointNormal(cloud, param_norm, curvature);
+                    if(centroid.isZero()) break;
+                    bool calYaw = boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
                     ////////////////////////
-
-                    /////    Result   ///////
-                    ROS_INFO("Centroid x: %f, y:%f, z:%f", centroid[0], centroid[1], centroid[2]);
-                    ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
-                    ROS_INFO("Normal vector a:%f, b:%f, c:%f, d:%f", param_norm[0], param_norm[1], param_norm[2], param_norm[3]);
-                    ROS_INFO("Curvature: %f", curvature);
-
-                    float theta = atan(sqrt((param_norm[2] * param_norm[2]) + (param_norm[1] * param_norm[1]))/param_norm[0]);
-                    float phi = atan(param_norm[2]/param_norm[1]);
-                    ROS_WARN("Theta: %f and phi: %f", (theta * 180)/M_PI, (phi * 180)/M_PI);
-                    /////////////////////////
+                    if(calYaw)
+                    {
+                        ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
+                        pose.transform.translation.x = centroid[0];
+                        pose.transform.translation.y = centroid[1];
+                        pose.transform.translation.z = centroid[2];
+                        tf2::Quaternion q;
+                        q.setRPY(0,0,yaw);
+                        pose.transform.rotation = tf2::toMsg(q);
+                        _pubPose.publish(pose);
+                        broadCaster.sendTransform(pose);
+                    }
 
                     cloud->header.frame_id = "camera";
                     pcl_conversions::toPCL(ros::Time::now(), cloud->header.stamp);

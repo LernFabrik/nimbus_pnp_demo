@@ -46,7 +46,6 @@ nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){
     _marker.color.g = 1.0f;
     _marker.color.b = 0.0f;
     _marker.color.a = 1.0;
-    bestXmax =  bestXmin = bestYmax = bestYmin = 0;
 }
 template <class PointType>
 nimbus::BoxDetector<PointType>::~BoxDetector(){}
@@ -122,7 +121,6 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
             }
         }
     }
-    ROS_INFO("Test 1");
     res.header   = blob->header;
     res.is_dense = blob->is_dense;
     res.sensor_orientation_ = blob->sensor_orientation_;
@@ -421,12 +419,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     // Diagonal
     float d = sqrt((width * width) + (length * length));
     
-    this->selectBestCorner(d, corners, centroid);
-    if(bestXmin > 10) best_corner = 0;
-    else if (bestXmax > 10) best_corner = 1;
-    else if (bestYmin > 10) best_corner = 2;
-    else if (bestYmax > 10) best_corner = 3;
-    else return false;
+    this->selectBestCorner(d, corners, centroid, best_corner);
 
     float m = 0;
     float angle = 0;
@@ -443,7 +436,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             if (sideSelect == Side::LENGTH){
                 if(((angle * 180)/M_PI) < 0){
                     angle = M_PI + angle;
-                    yaw = angle - box_max_angle;
+                    yaw = -(M_PI/2) + angle - box_min_angle;
                 } else{
                     yaw =  angle - box_max_angle;
                 }
@@ -532,7 +525,6 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     _marker.scale.y = length;
     _marker.scale.z = 0.001;
     _pub_marker.publish(_marker);
-    bestXmax =  bestXmin = bestYmax = bestYmin = 0;
     return true;
 }
 
@@ -558,7 +550,7 @@ nimbus::BoxDetector<PointType>::selectSide(const float x1, const float y1, const
 template <class PointType>
 void 
 nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
-                                                 const Eigen::Vector4f &centroid)
+                                                 const Eigen::Vector4f &centroid, unsigned int &best)
 {
     Eigen::Vector4f halfD;
     halfD.setZero();
@@ -580,23 +572,7 @@ nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eig
         }
     }
 
-    switch(indice)
-    {
-        case 0:
-            bestXmin += 1;
-            break;
-        case 1:
-            bestXmax += 1;
-            break;
-        case 2: 
-            bestYmin += 1;
-            break;
-        case 3:
-            bestYmax += 1;
-            break;
-        default:
-            break;
-    }
+    best = indice;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
