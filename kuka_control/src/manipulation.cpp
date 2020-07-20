@@ -15,13 +15,14 @@ iwtros::iiwaMove::iiwaMove(ros::NodeHandle nh, const std::string planning_group)
         // visual markers
         PLANNING_GROUP = planning_group;
         init(_nh);
+        tf2_ros::TransformListener listener(buffer);
 }
 
 iwtros::iiwaMove::~iiwaMove(){}
 
 void iwtros::iiwaMove::init(ros::NodeHandle nh){
         _loadParam();
-        _sub = nh.subscribe<geometry_msgs::TransformStamped>("detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
+        _sub = nh.subscribe<geometry_msgs::TransformStamped>("/box_detector_node/detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
         _initialized = true;
         ready_pick_pose = false;
 }
@@ -53,84 +54,27 @@ geometry_msgs::PoseStamped iwtros::iiwaMove::generatePose(double x, double y, do
         return pose;
 }
 
-void iwtros::iiwaMove::generateMeanPose(const geometry_msgs::Transform detection)
-{
-        double x = 0, y = 0, yaw = 0;
-        int counter = 0;
-        geometry_msgs::Transform new_pose;
-        for (int i = 0; i < poseY.size(); i ++)
-        {
-                x += poseX.front();
-                y += poseY.front();
-                yaw += _yaw.front();
-                counter += 1;
-        }
-        new_pose = detected_pose;
-        new_pose.translation.x = x / counter;
-        new_pose.translation.y = y / counter;
-        tf2::Quaternion q;
-        q.setRPY(0, 0, yaw/counter);
-        new_pose.rotation  = tf2::toMsg(q);
-        while(poseY.size() > 0 && poseX.size() > 0)
-        {
-                poseY.pop();
-                poseX.pop();
-        }
-        this->generatePickPose(new_pose, "iiwa_link_0");
-}
-
-void iwtros::iiwaMove::generatePickPose(const geometry_msgs::Transform detection, std::string base_link){
-        geometry_msgs::PoseStamped pose;
-        pose.header.frame_id = base_link.c_str();
-        pose.header.stamp = ros::Time::now() + ros::Duration(2.1);
-        ROS_INFO("Detected pose x: %f", detection.translation.x);
-        if(detection.translation.x > 0.20 || detection.translation.x < -0.20 || detection.translation.y > 0.20 || detection.translation.y < -0.20){
-                ROS_ERROR("False detection");
-                return;
-        }
-
-        pose.pose.position.x = 0.6 + detection.translation.x;
-        pose.pose.position.y = 0.09 - detection.translation.y;
-        pose.pose.position.z = 1.12;                     // Fixed Pose for the robot
-        tf2::Quaternion quad, q;
-        tf2Scalar roll, pitch, yaw;
-        tf2::fromMsg(detection.rotation, quad);
-        tf2::Matrix3x3 mat(quad);
-        mat.getEulerYPR(yaw, pitch, roll);
-        /// Yaw Correction. 
-        tf2Scalar fixed_yaw = (3*M_PI)/4;
-        double new_yaw = fixed_yaw - yaw;
-        q.setRPY(M_PI, 0, new_yaw);
-        pose.pose.orientation.x = q.x();
-        pose.pose.orientation.y = q.y();
-        pose.pose.orientation.z = q.z();
-        pose.pose.orientation.w = q.w();
-        this->pick_pose = pose;
-        this->ready_pick_pose = true;
-}
 
 void iwtros::iiwaMove::callback(const geometry_msgs::TransformStamped::ConstPtr& data){
-        this->detected_pose.translation.x = data->transform.translation.x;
-        this->detected_pose.translation.y = data->transform.translation.y;
-        this->detected_pose.translation.z = data->transform.translation.z;
-        this->detected_pose.rotation.x = data->transform.rotation.x;
-        this->detected_pose.rotation.y = data->transform.rotation.y;
-        this->detected_pose.rotation.z = data->transform.rotation.z;
-        this->detected_pose.rotation.w = data->transform.rotation.w;
-
-        tf2::Quaternion quad, q;
-        tf2Scalar roll, pitch, yaw;
-        tf2::fromMsg(this->detected_pose.rotation, quad);
-        tf2::Matrix3x3 mat(quad);
-        mat.getEulerYPR(yaw, pitch, roll);
-
-        poseX.push(this->detected_pose.translation.x);
-        poseY.push(this->detected_pose.translation.y);
-        _yaw.push(yaw);
-        if(poseY.size() > 1 && poseX.size() > 1){
-                this->generateMeanPose(this->detected_pose);
+        geometry_msgs::TransformStamped pose;
+        ros::Time past = ros::Time::now() - ros::Duration(5.0);
+        try
+        {
+                pose = buffer.lookupTransform("camera", "box", past, ros::Duration(1.0));
         }
-        // this->generatePickPose(this->detected_pose, "iiwa_link_0");
+        catch(tf2::TransformException &ex)
+        {
+                ROS_WARN("%s",ex.what());
+                ros::Duration(1.0).sleep();
+        }
+        
+        ROS_INFO("Pick Pose x: %f, y:%f, z: %f, rx: %f, ry: %f, rz: %f, rw:%f", pose.transform.translation.x, 
+                                                                                pose.transform.translation.y,
+                                                                                pose.transform.translation.z,
+                                                                                pose.transform.rotation.x,
+                                                                                pose.transform.rotation.y,
+                                                                                pose.transform.rotation.z,
+                                                                                pose.transform.rotation.w);
 }
 
 void iwtros::iiwaMove::run(){

@@ -72,3 +72,6 @@ target_link_libraries(box_detector_node box_detector ${catkin_LIBRARIES} ${PCL_L
 add_executable(allign_model_node src/allign_model.cpp)
 add_dependencies(allign_model_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(allign_model_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(pose_transform_node src/transformPose.cpp)
+target_link_libraries(pose_transform_node ${catkin_LIBRARIES})

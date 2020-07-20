@@ -15,6 +15,8 @@
 #include <moveit/robot_state/robot_state.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/Transform.h>
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #include <kuka_control/schunk_gripper.h>
 
@@ -26,6 +28,7 @@ namespace iwtros{
         ros::Subscriber _sub;
         bool _initialized = false;
         moveit::planning_interface::MoveGroupInterface move_group;
+        tf2_ros::Buffer buffer;
         // moveit parameters
         /** ToDo:
          * Currently parameters are hard coded.
@@ -40,9 +43,6 @@ namespace iwtros{
         geometry_msgs::Transform detected_pose;
         geometry_msgs::PoseStamped pick_pose;
         bool ready_pick_pose;
-        std::queue<double> poseX;
-        std::queue<double> poseY;
-        std::queue<double> _yaw;
 
     public:
         iiwaMove(ros::NodeHandle nh, const std::string planning_group);

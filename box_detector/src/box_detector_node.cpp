@@ -33,6 +33,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
 
 #include <pcl_ros/point_cloud.h>
@@ -53,6 +54,7 @@ class Detector{
         ros::Publisher _pub;
         ros::Publisher _pubPose;
         PointCloud::Ptr _cloud;
+        tf2_ros::Buffer buffer;
         pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> _queue;
 
         bool _newCloud = false;
@@ -73,6 +75,8 @@ class Detector{
             _sub = _nh.subscribe<sensor_msgs::PointCloud2>("/nimbus/pointcloud", 10, boost::bind(&Detector::callback, this, _1));
             _pub = _nh.advertise<PointCloud>("filtered_cloud", 5);
             _pubPose = _nh.advertise<geometry_msgs::TransformStamped>("detected_pose", 10);
+            tf2_ros::TransformListener listener(buffer);
+
 
             this->boxDectect = new nimbus::BoxDetector<pcl::PointXYZ>(_nh);
 
@@ -138,6 +142,7 @@ class Detector{
                     if(calYaw)
                     {
                         ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
+                        pose.header.stamp = ros::Time::now();
                         pose.transform.translation.x = centroid[0];
                         pose.transform.translation.y = centroid[1];
                         pose.transform.translation.z = centroid[2];

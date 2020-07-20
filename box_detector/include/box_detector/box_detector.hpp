@@ -35,6 +35,8 @@
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
 #include <pcl/io/impl/synchronized_queue.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #include <pcl/search/search.h>
 #include <pcl/common/common.h>
