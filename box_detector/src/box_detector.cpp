@@ -485,11 +485,13 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             // Look Xmin side is Length or width
             this->selectSide(corners[4], corners[5], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                yaw = angle - box_max_angle;
+                if((angle * 180)/M_PI) < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
+                else break;
                 ROS_ERROR ("Ymin - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                yaw = angle + box_min_angle;
+                if((angle * 180)/M_PI) < 0) break; // ToDo
+                else yaw = angle - box_max_angle;
                 ROS_ERROR ("Ymin - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
@@ -500,16 +502,12 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             // Look Xmin side is Length or width
             this->selectSide(corners[6], corners[7], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                yaw = (M_PI/2) - angle - box_min_angle;
-                ROS_ERROR ("Ymax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
+                if((angle * 180)/M_PI) < 0) break; // ToDo
+                else yaw = angle - box_max_angle;
             }
             if(sideSelect == Side::WIDTH){
-                if(((angle * 180)/M_PI) < 0){
-                    angle = M_PI + angle;
-                    yaw =  angle - box_min_angle;
-                }else{
-                    yaw = (M_PI/2) + angle - box_min_angle;
-                }
+                if((angle * 180)/M_PI) < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
+                else break;
                 ROS_ERROR ("Ymax - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
