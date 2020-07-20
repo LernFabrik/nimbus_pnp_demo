@@ -55,12 +55,14 @@ namespace nimbus
         private:
             visualization_msgs::Marker _marker;
             uint32_t _shape = visualization_msgs::Marker::CUBE;
+            unsigned int bestXmin, bestXmax, bestYmin, bestYmax;
         protected:
             ros::NodeHandle _nh;
             ros::Publisher _pub_marker;
             EIGEN_ALIGN16 Eigen::Matrix3f _covariance_matrix;
             Eigen::Vector4f _centroid;
             Side sideSelect;
+            std::vector<std::pair<float, int> > _meanYaw;
         public:
             BoxDetector(ros::NodeHandle nh);
             ~BoxDetector();
@@ -112,13 +114,13 @@ namespace nimbus
             void solveBoxParameters (const Eigen::Matrix3f &covariance_matrix,
                                        float &nx, float &ny, float &nz, float &curvature);
             
-            void boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
+            bool boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, 
                         const float width, const float length,
                         const Eigen::Vector4f &centroid,
                         float &yaw);
             void slopeWRTCoordinate(const float x1, const float y1, const float x2, const float y2, float &angle);
             void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
-                                  const Eigen::Vector4f &centroid, unsigned int &best);
+                                  const Eigen::Vector4f &centroid);
             void selectSide(const float x1, const float y1, const float x2, const float y2,
                             const float width, const float length, Side &sides);
     };

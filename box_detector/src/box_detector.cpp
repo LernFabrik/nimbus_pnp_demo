@@ -46,6 +46,7 @@ nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){
     _marker.color.g = 1.0f;
     _marker.color.b = 0.0f;
     _marker.color.a = 1.0;
+    bestXmax =  bestXmin = bestYmax = bestYmin = 0;
 }
 template <class PointType>
 nimbus::BoxDetector<PointType>::~BoxDetector(){}
@@ -355,7 +356,7 @@ nimbus::BoxDetector<PointType>::solveBoxParameters (const Eigen::Matrix3f &covar
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <class PointType>
-void 
+bool 
 nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
                                        const float width, const float length,
                                        const Eigen::Vector4f &centroid,
@@ -420,7 +421,13 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     // Diagonal
     float d = sqrt((width * width) + (length * length));
     
-    this->selectBestCorner(d, corners, centroid, best_corner);
+    this->selectBestCorner(d, corners, centroid);
+    if(bestXmin > 10) best_corner = 0;
+    else if (bestXmax > 10) best_corner = 1;
+    else if (bestYmin > 10) best_corner = 2;
+    else if (bestYmax > 10) best_corner = 3;
+    else return false;
+
     float m = 0;
     float angle = 0;
     float box_max_angle = atan(length/width);
@@ -436,7 +443,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             if (sideSelect == Side::LENGTH){
                 if(((angle * 180)/M_PI) < 0){
                     angle = M_PI + angle;
-                    yaw = angle + box_min_angle - (M_PI/2);
+                    yaw = angle - box_max_angle;
                 } else{
                     yaw =  angle - box_max_angle;
                 }
@@ -446,7 +453,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                 if(((angle * 180)/M_PI) < 0){
                     // Test Complete
                     angle = M_PI + angle;
-                    yaw =  angle - box_max_angle;
+                    yaw = angle - box_min_angle - (M_PI/2);
                 } else{
                     yaw = (M_PI/2) + angle - box_min_angle;
                 }
@@ -464,7 +471,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                     angle = M_PI + angle;
                     yaw =  angle + box_max_angle;
                 }else{
-                    yaw = angle - box_max_angle;
+                    yaw = (M_PI/2) + angle - box_min_angle;
                 }
                 ROS_ERROR ("Xmax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
@@ -473,7 +480,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                     angle = M_PI + angle;
                     yaw = (M_PI/2) + angle - box_min_angle;
                 }else{
-                    yaw =  angle + box_min_angle - (M_PI/2);
+                    yaw =  angle - box_min_angle - (M_PI/2);
                 }
                 ROS_ERROR ("Xmax - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
@@ -485,12 +492,12 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             // Look Xmin side is Length or width
             this->selectSide(corners[4], corners[5], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                if((angle * 180)/M_PI) < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
-                else break;
+                if((angle * 180)/M_PI < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
+                else break; // Todo
                 ROS_ERROR ("Ymin - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                if((angle * 180)/M_PI) < 0) break; // ToDo
+                if((angle * 180)/M_PI < 0) break; // ToDo
                 else yaw = angle - box_max_angle;
                 ROS_ERROR ("Ymin - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
@@ -502,39 +509,17 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             // Look Xmin side is Length or width
             this->selectSide(corners[6], corners[7], corners[0], corners[1], width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
-                if((angle * 180)/M_PI) < 0) break; // ToDo
-                else yaw = angle - box_max_angle;
+                if((angle * 180)/M_PI < 0) yaw = angle - box_min_angle;
+                else yaw = (M_PI/2) - box_max_angle - angle;
+                ROS_ERROR ("Ymax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             if(sideSelect == Side::WIDTH){
-                if((angle * 180)/M_PI) < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
-                else break;
+                if((angle * 180)/M_PI < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
+                else yaw = angle - box_min_angle - (M_PI/2); 
                 ROS_ERROR ("Ymax - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
             break;
     }
-
-    // float m = static_cast<float>(slope(best_corner[0], best_corner[1], centroid[0], centroid[1]));
-    // float angle = atan(m);
-    // float box_angle = 0;
-    // if(((angle * 180)/M_PI) >= 0)
-    // {
-    //     if(((angle * 180)/M_PI) >= 90)
-    //     {
-    //         box_angle = atan(width/length);
-    //         yaw = angle + box_angle - (M_PI/2);
-    //     }
-    //     else{
-    //         box_angle = atan(length/width);
-    //         yaw = angle - box_angle;
-    //     }
-    // }else
-    // {
-    //     box_angle = atan(width/length);
-    //     yaw = angle + box_angle - (M_PI/2);
-    // }
-    
-    
-    // this->sideOrientation(best_corner, width, length, corners, yaw);
 
     _marker.lifetime = ros::Duration(); 
     _marker.pose.position.x = centroid[0];
@@ -547,16 +532,9 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     _marker.scale.y = length;
     _marker.scale.z = 0.001;
     _pub_marker.publish(_marker);
+    bestXmax =  bestXmin = bestYmax = bestYmin = 0;
+    return true;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// template <class PointType>
-// void 
-// nimbus::BoxDetector<PointType>::slopeWRTCoordinate(const float x1, const float y1, const float x2, const float y2, float &angle)
-// {
-//     // x2 and y2 are the centroids
-// }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -580,7 +558,7 @@ nimbus::BoxDetector<PointType>::selectSide(const float x1, const float y1, const
 template <class PointType>
 void 
 nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
-                                                 const Eigen::Vector4f &centroid, unsigned int &best)
+                                                 const Eigen::Vector4f &centroid)
 {
     Eigen::Vector4f halfD;
     halfD.setZero();
@@ -601,31 +579,24 @@ nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eig
             indice = i;
         }
     }
-    best = indice;
-    // best.setZero();
-    // switch(indice)
-    // {
-    //     case 0:
-    //         best[0] = corners[0];
-    //         best[1] = corners[1];
-    //         break;
-    //     case 1:
-    //         best[0] = corners[2];
-    //         best[1] = corners[3];
-    //         break;
-    //     case 2: 
-    //         best[0] = corners[4];
-    //         best[1] = corners[5];
-    //         break;
-    //     case 3:
-    //         best[0] = corners[6];
-    //         best[1] = corners[7];
-    //         break;
-    //     default:
-    //         best[0] = corners[0];
-    //         best[1] = corners[1];
-    //         break;
-    // }
+
+    switch(indice)
+    {
+        case 0:
+            bestXmin += 1;
+            break;
+        case 1:
+            bestXmax += 1;
+            break;
+        case 2: 
+            bestYmin += 1;
+            break;
+        case 3:
+            bestYmax += 1;
+            break;
+        default:
+            break;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
