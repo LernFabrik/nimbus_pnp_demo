@@ -147,6 +147,7 @@ class Detector{
                         pose.transform.translation.y = centroid[1];
                         pose.transform.translation.z = centroid[2];
                         tf2::Quaternion q;
+                        // ToDo Orientation correction instead of -ve in x and y
                         q.setRPY(0,0,yaw);
                         pose.transform.rotation = tf2::toMsg(q);
                         _pubPose.publish(pose);

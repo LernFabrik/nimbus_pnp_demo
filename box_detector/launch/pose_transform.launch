@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <node name="pose_test_node" pkg="box_detector" type="pose_transform_node" output="screen">
+    </node>
+
+</launch>

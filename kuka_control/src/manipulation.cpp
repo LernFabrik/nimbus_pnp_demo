@@ -22,7 +22,7 @@ iwtros::iiwaMove::~iiwaMove(){}
 
 void iwtros::iiwaMove::init(ros::NodeHandle nh){
         _loadParam();
-        _sub = nh.subscribe<geometry_msgs::TransformStamped>("/box_detector_node/detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
+        _sub = nh.subscribe<geometry_msgs::TransformStamped>("/detected_goal", 10, boost::bind(&iiwaMove::callback, this, _1));
         _initialized = true;
         ready_pick_pose = false;
 }
@@ -56,25 +56,18 @@ geometry_msgs::PoseStamped iwtros::iiwaMove::generatePose(double x, double y, do
 
 
 void iwtros::iiwaMove::callback(const geometry_msgs::TransformStamped::ConstPtr& data){
-        geometry_msgs::TransformStamped pose;
-        ros::Time past = ros::Time::now() - ros::Duration(5.0);
-        try
-        {
-                pose = buffer.lookupTransform("camera", "box", past, ros::Duration(1.0));
-        }
-        catch(tf2::TransformException &ex)
-        {
-                ROS_WARN("%s",ex.what());
-                ros::Duration(1.0).sleep();
-        }
-        
-        ROS_INFO("Pick Pose x: %f, y:%f, z: %f, rx: %f, ry: %f, rz: %f, rw:%f", pose.transform.translation.x, 
-                                                                                pose.transform.translation.y,
-                                                                                pose.transform.translation.z,
-                                                                                pose.transform.rotation.x,
-                                                                                pose.transform.rotation.y,
-                                                                                pose.transform.rotation.z,
-                                                                                pose.transform.rotation.w);
+    tf2Scalar roll, pitch, yaw;
+    tf2::Quaternion q;
+    tf2::fromMsg(data->transform.rotation, q);
+    tf2::Matrix3x3 mat(q);
+    mat.getEulerYPR(yaw, pitch, roll);
+    ROS_INFO("Goal x:%f, y:%f, z:%f, yaw: %f" , data->transform.translation.x, 
+                                    data->transform.translation.y, 
+                                    1.12 + data->transform.translation.z, (yaw * 180)/M_PI);
+    this->pick_pose =  generatePose(data->transform.translation.x, 
+                                    data->transform.translation.y, 
+                                    1.12 + data->transform.translation.z, M_PI, 0 , yaw + M_PI/4, "iiwa_link_0");
+    this->ready_pick_pose = true;
 }
 
 void iwtros::iiwaMove::run(){
@@ -91,7 +84,9 @@ void iwtros::iiwaMove::run(){
         move_group.allowReplanning(true);
 
         std::thread t1(&iiwaMove::_ctrl_loop, this);
+        // std::thread t2(&iiwaMove::_tf_listner_loop, this);
         t1.join();
+        // t2.join();
         ros::shutdown();
 }
 
@@ -119,6 +114,7 @@ void iwtros::iiwaMove::_ctrl_loop(){
                         motionExecution(home_pose);
                 }else{
                         ROS_WARN("Doing Nothing and I am HAPPY!");
+                        ros::spinOnce(); 
                 }
                 ros::spinOnce();        
                 r.sleep();

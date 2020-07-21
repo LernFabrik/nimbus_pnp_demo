@@ -14,9 +14,10 @@ int main(int argc, char** argv){
     ros::Rate rate(10.0);
     while (node.ok()){
         geometry_msgs::TransformStamped transformStamped;
+        ros::Time past = ros::Time::now() - ros::Duration(5.0);
         try{
-            transformStamped = tfBuffer.lookupTransform("iiwa_link_0", "camera",
-                                        ros::Time(0));
+            transformStamped = tfBuffer.lookupTransform("iiwa_link_0", "box",
+                                        past, ros::Duration(3.0));
         }
         catch (tf2::TransformException &ex) {
             ROS_WARN("%s",ex.what());
@@ -25,8 +26,8 @@ int main(int argc, char** argv){
         }
 
         geometry_msgs::TransformStamped pose;
-        pose.child_frame_id = "box";
-        pose.header.frame_id = "iiwa_link_0";
+        pose.child_frame_id = "iiwa_link_0";
+        pose.header.frame_id = "box";
         pose.header.stamp = ros::Time::now();
         pose.transform.translation.x = transformStamped.transform.translation.x;
         pose.transform.translation.y = transformStamped.transform.translation.y;
