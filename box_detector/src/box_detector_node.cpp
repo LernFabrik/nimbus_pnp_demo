@@ -141,6 +141,8 @@ class Detector{
                     ////////////////////////
                     if(calYaw)
                     {
+                        if((yaw * 180)/M_PI > 90) yaw = yaw - M_PI;
+                        if((yaw * 180)/M_PI < -90) yaw = yaw + M_PI;
                         ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
                         pose.header.stamp = ros::Time::now();
                         pose.transform.translation.x = centroid[0];

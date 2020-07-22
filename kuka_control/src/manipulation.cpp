@@ -99,7 +99,8 @@ void iwtros::iiwaMove::_ctrl_loop(){
                 geometry_msgs::PoseStamped place_pose = generatePose(0.228, -0.428, 1.2215, M_PI, 0 , M_PI/4, "iiwa_link_0");
                 geometry_msgs::PoseStamped home_pose = generatePose(0.228, -0.428, 1.3, M_PI, 0 , M_PI/4, "iiwa_link_0");
                 geometry_msgs::PoseStamped test_pose = generatePose(0.6, 0.09, 1.12, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
-
+                // this->pick_pose =  generatePose(0.694, 0.19, 1.14, M_PI, 0 , M_PI + M_PI/4, "iiwa_link_0");
+                // ready_pick_pose = true;
                 if(ready_pick_pose){
                         ready_pick_pose = false;
                         _sub.shutdown();

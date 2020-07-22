@@ -8,7 +8,7 @@
         <param name="per_height" type="double" value = "0.4" />
     </node>
     
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.65 0.1 0.84 0.7071068, -0.7071068, 0, 0 iiwa_link_0 camera 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.75 0.08 0.84 0.7071068 0.7071068 0 0 iiwa_link_0 camera 100" />
 
     <node name="pose_test_node" pkg="box_detector" type="pose_transform_node" output="screen"/>
 
