@@ -23,8 +23,10 @@ iwtros::iiwaMove::~iiwaMove(){}
 void iwtros::iiwaMove::init(ros::NodeHandle nh){
         _loadParam();
         _sub = nh.subscribe<geometry_msgs::TransformStamped>("/detected_goal", 10, boost::bind(&iiwaMove::callback, this, _1));
+        _accpSub = nh.subscribe<std_msgs::Bool>("accept_pose", 10, boost::bind(&iiwaMove::acceptCallback, this, _1));
         _initialized = true;
         ready_pick_pose = false;
+        _accept_pose = false;
 }
 
 void iwtros::iiwaMove::_loadParam(){
@@ -61,13 +63,14 @@ void iwtros::iiwaMove::callback(const geometry_msgs::TransformStamped::ConstPtr&
     tf2::fromMsg(data->transform.rotation, q);
     tf2::Matrix3x3 mat(q);
     mat.getEulerYPR(yaw, pitch, roll);
-    ROS_INFO("Goal x:%f, y:%f, z:%f, yaw: %f" , data->transform.translation.x, 
-                                    data->transform.translation.y, 
-                                    1.12 + data->transform.translation.z, (yaw * 180)/M_PI);
-    this->pick_pose =  generatePose(data->transform.translation.x, 
-                                    data->transform.translation.y, 
-                                    1.12 + data->transform.translation.z, M_PI, 0 , yaw + M_PI/4, "iiwa_link_0");
+    this->pick_pose = generatePose(data->transform.translation.x, data->transform.translation.y, 
+                                   1.125 + data->transform.translation.z, M_PI, 0, yaw + M_PI/4, "iiwa_link_0");
     this->ready_pick_pose = true;
+}
+
+void iwtros::iiwaMove::acceptCallback(const std_msgs::Bool::ConstPtr &data)
+{
+    this->_accept_pose = data->data;
 }
 
 void iwtros::iiwaMove::run(){
@@ -101,21 +104,20 @@ void iwtros::iiwaMove::_ctrl_loop(){
                 geometry_msgs::PoseStamped test_pose = generatePose(0.6, 0.09, 1.12, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
                 // this->pick_pose =  generatePose(0.694, 0.19, 1.14, M_PI, 0 , M_PI + M_PI/4, "iiwa_link_0");
                 // ready_pick_pose = true;
-                if(ready_pick_pose){
+                if(ready_pick_pose && _accept_pose){
                         ready_pick_pose = false;
+                        _accept_pose = false;
                         _sub.shutdown();
                         ROS_WARN("Moving to Pick");
-                        pnpPipeLine(this->pick_pose, place_pose, 0.12);
+                        pnpPipeLine(this->pick_pose, place_pose, 0.15);
                         home_position = true;
-                        _sub = _nh.subscribe<geometry_msgs::TransformStamped>("detected_pose", 10, boost::bind(&iiwaMove::callback, this, _1));
-                        ros::spinOnce(); 
+                        _sub = _nh.subscribe<geometry_msgs::TransformStamped>("/detected_goal", 10, boost::bind(&iiwaMove::callback, this, _1)); 
                 }if(home_position){
                         home_position = false;
                         ROS_WARN("Home Pose");
                         motionExecution(home_pose);
                 }else{
                         ROS_WARN("Doing Nothing and I am HAPPY!");
-                        ros::spinOnce(); 
                 }
                 ros::spinOnce();        
                 r.sleep();
@@ -148,6 +150,8 @@ void iwtros::iiwaMove::pnpPipeLine(geometry_msgs::PoseStamped pick,
         // Go to Place Postpose, ToDo: Set LIN motion
         place.pose.position.z += offset;
         motionExecution(place);
+        this->closeGripper();
+        this->ackGripper();
 }
 
 void iwtros::iiwaMove::motionExecution(const geometry_msgs::PoseStamped pose){

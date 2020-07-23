@@ -17,6 +17,7 @@
 #include <geometry_msgs/Transform.h>
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <std_msgs/Bool.h>
 
 #include <kuka_control/schunk_gripper.h>
 
@@ -26,6 +27,7 @@ namespace iwtros{
     private:
         ros::NodeHandle _nh;
         ros::Subscriber _sub;
+        ros::Subscriber _accpSub;
         bool _initialized = false;
         moveit::planning_interface::MoveGroupInterface move_group;
         tf2_ros::Buffer buffer;
@@ -42,7 +44,7 @@ namespace iwtros{
         double accelerationScalling;
         geometry_msgs::Transform detected_pose;
         geometry_msgs::PoseStamped pick_pose;
-        bool ready_pick_pose;
+        bool ready_pick_pose, _accept_pose;
 
     public:
         iiwaMove(ros::NodeHandle nh, const std::string planning_group);
@@ -52,6 +54,7 @@ namespace iwtros{
 
         /** Detected Pose Callback*/ 
         void callback(const geometry_msgs::TransformStamped::ConstPtr& data);
+        void acceptCallback(const std_msgs::Bool::ConstPtr &data);
 
         /** Return geometry pose from given poisition values*/
         void generateMeanPose(const geometry_msgs::Transform detection);
