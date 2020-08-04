@@ -126,7 +126,10 @@ class Detector{
                     std::unique_lock<std::mutex> lock(cloud_lock);
                     pcl::copyPointCloud(*_cloud, *blob);
                     lock.unlock();
-
+                    // ToDo
+                    // Save and check the ground truth values
+                    // Remove the ground truth
+                    // Mean corners for 50 frames
                     _queue.enqueue(*blob);
                     // Queue sheild
                     if(_queue.size() < 5) continue;
