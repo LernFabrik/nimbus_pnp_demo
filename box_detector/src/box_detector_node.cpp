@@ -41,6 +41,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 
 #include <box_detector/box_detector.hpp>
 
@@ -107,6 +108,40 @@ class Detector{
             nh.getParam("per_height", per_height);
         }
 
+        bool groudTruth(const boost::shared_ptr< const pcl::PointCloud<pcl::PointXYZ>> blob, pcl::PointCloud<pcl::PointXYZ> &res)
+        {
+            std::string model_name = "/grount_truth";
+            std::string extention = ".pcd";
+            std::string saved_groudtruth;
+            int counter = 0;
+            std::stringstream dir;
+            std::string _working_dir = getenv("HOME");
+            dir << _working_dir << "/ros_ws/ground";
+            boost::filesystem::path test_dir = dir.str();
+            if(!boost::filesystem::exists(test_dir) && !boost::filesystem::is_directory(test_dir))
+            {
+                ROS_INFO("------------------ Creating folder ---------------------");
+                boost::filesystem::create_directory(test_dir);
+                ros::Duration(1.0).sleep();
+            }
+            std::stringstream file;
+            file << test_dir.c_str() << model_name << extention;
+            if(!boost::filesystem::exists(file.str()))
+            {
+                ROS_INFO("------------------ For the first time scan the empty table ---------------------");
+                ROS_INFO("------------------ If the table is not empty then please empty the table and RESTART ---------------------");
+                ros::Duration(1.0).sleep();
+                pcl::io::savePCDFile(file.str(), *blob);
+                return false;
+            }
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
+            typename pcl::PointCloud<pcl::PointXYZ>::Ptr ground (new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::io::loadPCDFile(file.str(), *ground);
+            boxDectect->getBaseModel(ground, blob, 0.07 ,*cloud);
+            pcl::copyPointCloud(*cloud, res);
+            return true;
+        }
+
 
         void run()
         {   
@@ -130,14 +165,14 @@ class Detector{
                     // Save and check the ground truth values
                     // Remove the ground truth
                     // Mean corners for 50 frames
-                    _queue.enqueue(*blob);
+                    boxDectect->outlineRemover(blob, blob->width, blob->height, per_width, per_height, *rCloud);
+                    _queue.enqueue(*rCloud);
                     // Queue sheild
                     if(_queue.size() < 5) continue;
                     boxDectect->meanFilter(_queue, *meanCloud);
-
+                    groudTruth(meanCloud, *cloud);
                     //// Core Operation ////
-                    boxDectect->outlineRemover(meanCloud, blob->width, blob->height, per_width, per_height, *rCloud);
-                    boxDectect->zAxisLimiter(rCloud, distance_max, distance_min, *cloud);
+                    // boxDectect->zAxisLimiter(meanCloud, distance_max, distance_min, *cloud);
                     boxDectect->box3DCentroid(cloud, centroid);
                     if(centroid.isZero()) break;
                     bool calYaw = boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);

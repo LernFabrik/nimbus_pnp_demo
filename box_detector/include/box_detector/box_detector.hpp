@@ -82,6 +82,11 @@ namespace nimbus
                                 int width, int height, float perW, float perH,
                                 pcl::PointCloud<PointType> &res);
 
+            void getBaseModel(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+                          const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &raw,
+                          double tolerence,
+                          pcl::PointCloud<pcl::PointXYZ> &res);
+
             void meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, pcl::PointCloud<pcl::PointXYZ> &res);
             /**
              * @brief Compute the Least-Squares plane fit for a given set of points, using their indices,

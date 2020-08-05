@@ -127,7 +127,49 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
     res.sensor_origin_ = blob->sensor_origin_;
 }
 
-
+template <class PointType>
+void
+nimbus::BoxDetector<PointType>::getBaseModel(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &groud,
+                                 const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &raw,
+                                 double tolerence,
+                                 pcl::PointCloud<pcl::PointXYZ> &res)
+{
+    if(groud->points.size() != raw->points.size()){
+        ROS_ERROR ("Size of ground truth and raw point cloud is not matching");
+        return;
+    }
+    typename pcl::PointCloud<pcl::PointXYZ>::Ptr edit_cloud (new pcl::PointCloud<pcl::PointXYZ>());
+    // Store the difference of z axis values;
+    std::vector<float> absZ;
+    for (int i = 0; i < groud->points.size(); i ++){
+        if(!std::isnan(groud->points[i].z) && !std::isnan(raw->points[i].z))
+            absZ.push_back(std::abs(groud->points[i].z - raw->points[i].z));
+        else
+            absZ.push_back(NAN);
+    }
+    
+    for (int i = 0; i < absZ.size(); i ++){
+        pcl::PointXYZ temp;
+        if(!std::isnan(absZ[i]) && absZ[i] > tolerence)
+        {
+            temp.x = raw->points[i].x;
+            temp.y = raw->points[i].y;
+            temp.z = raw->points[i].z;
+        }
+        else{
+            temp.x = NAN;
+            temp.y = NAN;
+            temp.z = NAN;
+        }
+        edit_cloud->points.push_back(temp);
+    }
+    pcl::copyPointCloud(*edit_cloud, res);
+    res.header   = raw->header;
+    res.is_dense = raw->is_dense;
+    res.sensor_orientation_ = raw->sensor_orientation_;
+    res.sensor_origin_ = raw->sensor_origin_;
+}
+        
 template <class PointType>
 bool 
 nimbus::BoxDetector<PointType>::computePointNormal(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
