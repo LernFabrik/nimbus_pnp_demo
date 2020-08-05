@@ -57,6 +57,8 @@ namespace nimbus
         private:
             visualization_msgs::Marker _marker;
             uint32_t _shape = visualization_msgs::Marker::CUBE;
+            Eigen::Matrix<float, 4, 2> cornerBuffer;
+            int cornerBufferCounter;
         protected:
             ros::NodeHandle _nh;
             ros::Publisher _pub_marker;
@@ -88,6 +90,18 @@ namespace nimbus
                           pcl::PointCloud<pcl::PointXYZ> &res);
 
             void meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, pcl::PointCloud<pcl::PointXYZ> &res);
+
+            /**
+             * @brief Get the Mean Corners object for give number of frames and stores
+             * @param queue 
+             * @param frameSize 
+             * @brief cornerBuffer: Eigen Matrix of size 4x2
+             *                  Xmin        Y_xMin
+             *                  Xmax        Y_xMax
+             *                  X_yMin      Ymin
+             *                  X_yMax      Ymax
+             */
+            bool getMeanCorners(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, int frameSize);
             /**
              * @brief Compute the Least-Squares plane fit for a given set of points, using their indices,
              * and return the estimated plane parameters together with the surface curvature. 
@@ -125,7 +139,7 @@ namespace nimbus
                         const Eigen::Vector4f &centroid,
                         float &yaw);
             void slopeWRTCoordinate(const float x1, const float y1, const float x2, const float y2, float &angle);
-            void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
+            void selectBestCorner(const float diagonal, const Eigen::Matrix<float, 4, 2> corners, 
                                   const Eigen::Vector4f &centroid, unsigned int &best);
             void selectSide(const float x1, const float y1, const float x2, const float y2,
                             const float width, const float length, Side &sides);

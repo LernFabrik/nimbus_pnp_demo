@@ -46,6 +46,9 @@ nimbus::BoxDetector<PointType>::BoxDetector(ros::NodeHandle nh): _nh(nh){
     _marker.color.g = 1.0f;
     _marker.color.b = 0.0f;
     _marker.color.a = 1.0;
+
+    cornerBuffer.setZero();
+    cornerBufferCounter = 0;
 }
 template <class PointType>
 nimbus::BoxDetector<PointType>::~BoxDetector(){}
@@ -402,65 +405,17 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                                        const Eigen::Vector4f &centroid,
                                        float &yaw)
 {
-    Eigen::Matrix<float, 8, 1> corners;
-    unsigned int best_corner;
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    pcl::copyPointCloud(*blob, cloud);
-
-    //unsigned int Xmin_indice = 0, Xmax_indice = 0, Ymin_indice = 0, Ymax_indice = 0;
-    float Xmax, Xmin, X_yMax, X_yMin;
-    float Ymax, Ymin, Y_xMax, Y_xMin;
-
-    float raw_yaw = 0;
-
-    size_t i = 0;
-    Xmax = Xmin = cloud.points[i].x;
-    Ymax = Ymin = cloud.points[i].y;
-    i += 1;
-    while (std::isnan(Xmax))
-    {
-        Xmax = Xmin = cloud.points[i].x;
-        Ymax = Ymin = cloud.points[i].y;
-        i += 1;
-    }
-
-    // Calculate Maximum and Minimum values in X and Y axis
+    Eigen::Matrix<float, 4, 2> corners;
     corners.setZero();
-    for(size_t j = i; j < cloud.points.size(); ++j)
-    {
-        pcl::PointXYZ point = cloud.points[j];
-        if(!pcl::isFinite(point)) continue;
-
-        if(cloud.points[j].x < Xmin)
-        {
-            corners[0] = cloud.points[j].x;
-            // Xmin_indice = static_cast<int>(i);
-            corners[1] = cloud.points[j].y;
-        }
-        if(cloud.points[j].x > Xmax)
-        {
-            corners[2] = cloud.points[j].x;
-            // Xmax_indice = static_cast<int>(i);
-            corners[3] =cloud.points[j].y;
-        }
-        if(cloud.points[j].y < Ymin)
-        {
-            corners[4] = cloud.points[j].y;
-            // Ymin_indice = static_cast<int>(i);
-            corners[5] = cloud.points[j].x;
-        }
-        if(cloud.points[j].y > Ymax)
-        {
-            corners[6] = cloud.points[j].y;
-            // Ymax_indice = static_cast<int>(i);
-            corners[7] = cloud.points[j].x;
-        }
-    }
-
+    bool ready = this->getMeanCorners(blob, 50);
+    if(!ready) return false;
+    corners = cornerBuffer;
+    cornerBuffer.setZero();
     // Calculate the best corner 
     // Diagonal
     float d = sqrt((width * width) + (length * length));
-    
+
+    unsigned int best_corner = 0;
     this->selectBestCorner(d, corners, centroid, best_corner);
 
     float m = 0;
@@ -470,11 +425,11 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
     switch(best_corner)
     {
         case 0:
-            m = static_cast<float>(slope(corners[0], corners[1], centroid[0], centroid[1]));
+            m = static_cast<float>(slope(corners(0, 0), corners(0, 1), centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
             // Look Ymin side is Length or width
-            this->selectSide(corners[0], corners[1], corners[4], corners[5], width, length, sideSelect);
+            this->selectSide(corners(0, 0), corners(0, 1), corners(2,0), corners(2,1), width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
                 if(((angle * 180)/M_PI) < 0){
                     angle = M_PI + angle;
@@ -496,11 +451,11 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             }
             break;
         case 1:
-            m = static_cast<float>(slope(corners[2], corners[3], centroid[0], centroid[1]));
+            m = static_cast<float>(slope(corners(1, 0), corners(1, 1), centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
             // Look Ymin side is Length or width
-            this->selectSide(corners[2], corners[3], corners[4], corners[5], width, length, sideSelect);
+            this->selectSide(corners(1,0), corners(1,1), corners(2,0), corners(2,1), width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
                 if(((angle * 180)/M_PI) < 0){
                     angle = M_PI + angle;
@@ -521,11 +476,11 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             }
             break;
         case 2:
-            m = static_cast<float>(slope(corners[4], corners[5], centroid[0], centroid[1]));
+            m = static_cast<float>(slope(corners(2, 0), corners(2, 1), centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
             // Look Xmin side is Length or width
-            this->selectSide(corners[4], corners[5], corners[0], corners[1], width, length, sideSelect);
+            this->selectSide(corners(2,0), corners(2,1), corners(0,0), corners(0,1), width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
                 if((angle * 180)/M_PI < 0) yaw = (M_PI/2) + box_min_angle + angle; // Check the sign of angle
                 else break; // Todo
@@ -538,11 +493,11 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
             }
             break;
         case 3:
-            m = static_cast<float>(slope(corners[6], corners[7], centroid[0], centroid[1]));
+            m = static_cast<float>(slope(corners(3,0), corners(3, 1), centroid[0], centroid[1]));
             angle = atan(m);
             ROS_ERROR("Actual slope: %f", (angle * 180)/M_PI);
             // Look Xmin side is Length or width
-            this->selectSide(corners[6], corners[7], corners[0], corners[1], width, length, sideSelect);
+            this->selectSide(corners(3,0), corners(3,1), corners(0,0), corners(0,1), width, length, sideSelect);
             if (sideSelect == Side::LENGTH){
                 if((angle * 180)/M_PI < 0) yaw = angle - box_min_angle;
                 else yaw = (M_PI/2) - box_max_angle - angle;
@@ -590,17 +545,90 @@ nimbus::BoxDetector<PointType>::selectSide(const float x1, const float y1, const
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <class PointType>
+bool 
+nimbus::BoxDetector<PointType>::getMeanCorners(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, int frameSize)
+{
+    Eigen::Matrix<float, 4, 2> corners;
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::copyPointCloud(*blob, cloud);
+
+    //unsigned int Xmin_indice = 0, Xmax_indice = 0, Ymin_indice = 0, Ymax_indice = 0;
+    float Xmax, Xmin, X_yMax, X_yMin;
+    float Ymax, Ymin, Y_xMax, Y_xMin;
+
+    size_t i = 0;
+    corners(0, 0) = corners(1, 0) = cloud.points[i].x;
+    corners(2, 1) = corners(3, 1) = cloud.points[i].y;
+    i += 1;
+    while (std::isnan(Xmax))
+    {
+        Xmax = Xmin = cloud.points[i].x;
+        Ymax = Ymin = cloud.points[i].y;
+        i += 1;
+    }
+    // Calculate Maximum and Minimum values in X and Y axis
+    corners.setZero();
+    for(size_t j = i; j < cloud.points.size(); ++j)
+    {
+        pcl::PointXYZ point = cloud.points[j];
+        if(!pcl::isFinite(point)) continue;
+
+        if(cloud.points[j].x < corners(0, 0))
+        {
+            // Xmin
+            corners(0, 0) = cloud.points[j].x;
+            corners(0, 1) = cloud.points[j].y;
+        }
+        if(cloud.points[j].x > corners(1, 0))
+        {
+            // Xmax
+            corners(1, 0) = cloud.points[j].x;
+            corners(1, 1) =cloud.points[j].y;
+        }
+        if(cloud.points[j].y < corners(2, 1))
+        {
+            // Ymin
+            corners(2, 1) = cloud.points[j].y;
+            corners(2, 0) = cloud.points[j].x;
+        }
+        if(cloud.points[j].y > corners(3, 1))
+        {
+            // Ymax
+            corners(3, 1) = cloud.points[j].y;
+            corners(3, 0) = cloud.points[j].x;
+        }
+    }
+    if(cornerBufferCounter <= frameSize){
+        cornerBufferCounter += 1;
+        cornerBuffer(0, 0) += corners(0, 0);
+        cornerBuffer(0, 1) += corners(0, 1);
+        cornerBuffer(1, 0) += corners(1, 0);
+        cornerBuffer(1, 1) += corners(1, 1);
+        cornerBuffer(2, 0) += corners(2, 0);
+        cornerBuffer(2, 1) += corners(2, 1);
+        cornerBuffer(3, 0) += corners(3, 0);
+        cornerBuffer(3, 1) += corners(3, 1);
+        return false;
+    }else{
+        cornerBuffer /= static_cast<float>(frameSize);
+        return true;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <class PointType>
 void 
-nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eigen::Matrix<float, 8, 1> corners, 
+nimbus::BoxDetector<PointType>::selectBestCorner(const float diagonal, const Eigen::Matrix<float, 4, 2> corners, 
                                                  const Eigen::Vector4f &centroid, unsigned int &best)
 {
     Eigen::Vector4f halfD;
     halfD.setZero();
 
-    halfD[0] = static_cast<float>(hypotenuse((centroid[0] - corners[0]), (centroid[1] - corners[1])));
-    halfD[1] = static_cast<float>(hypotenuse((centroid[0] - corners[2]), (centroid[1] - corners[3])));
-    halfD[2] = static_cast<float>(hypotenuse((centroid[0] - corners[4]), (centroid[1] - corners[5])));
-    halfD[3] = static_cast<float>(hypotenuse((centroid[0] - corners[6]), (centroid[1] - corners[7])));
+    halfD[0] = static_cast<float>(hypotenuse((centroid[0] - corners(0, 0)), (centroid[1] - corners(0, 1))));
+    halfD[1] = static_cast<float>(hypotenuse((centroid[0] - corners(1, 0)), (centroid[1] - corners(1, 1))));
+    halfD[2] = static_cast<float>(hypotenuse((centroid[0] - corners(2, 0)), (centroid[1] - corners(2, 1))));
+    halfD[3] = static_cast<float>(hypotenuse((centroid[0] - corners(3, 0)), (centroid[1] - corners(3, 1))));
 
     float minValue = std::abs((diagonal/2) - halfD[0]);
     int indice = 0;
