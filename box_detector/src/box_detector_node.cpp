@@ -131,20 +131,22 @@ class Detector{
                 ROS_INFO("------------------ For the first time scan the empty table ---------------------");
                 ROS_INFO("------------------ If the table is not empty then please empty the table and RESTART ---------------------");
                 ros::Duration(1.0).sleep();
+                ROS_INFO("                   Saving ground truth.....");
                 pcl::io::savePCDFile(file.str(), *blob);
+                ROS_INFO("                   Place the box");
                 return false;
             }
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
             typename pcl::PointCloud<pcl::PointXYZ>::Ptr ground (new pcl::PointCloud<pcl::PointXYZ>());
             pcl::io::loadPCDFile(file.str(), *ground);
-            boxDectect->getBaseModel(ground, blob, 0.07 ,*cloud);
+            boxDectect->getBaseModel(ground, blob, 0.05 ,*cloud);
             pcl::copyPointCloud(*cloud, res);
             return true;
         }
 
 
         void run()
-        {   
+        { 
             ros::spinOnce();
             ros::Rate rate(5);
             while(ros::ok())
@@ -161,20 +163,21 @@ class Detector{
                     std::unique_lock<std::mutex> lock(cloud_lock);
                     pcl::copyPointCloud(*_cloud, *blob);
                     lock.unlock();
-                    // ToDo
-                    // Save and check the ground truth values
-                    // Remove the ground truth
-                    // Mean corners for 50 frames
+                    
                     boxDectect->outlineRemover(blob, blob->width, blob->height, per_width, per_height, *rCloud);
+                    
                     _queue.enqueue(*rCloud);
                     // Queue sheild
                     if(_queue.size() < 5) continue;
+                    
                     boxDectect->meanFilter(_queue, *meanCloud);
-                    groudTruth(meanCloud, *cloud);
+                    
+                    bool model = groudTruth(meanCloud, *cloud);
+                    if(!model) continue;
                     //// Core Operation ////
-                    // boxDectect->zAxisLimiter(meanCloud, distance_max, distance_min, *cloud);
                     boxDectect->box3DCentroid(cloud, centroid);
-                    if(centroid.isZero()) break;
+                    if(centroid.isZero()) continue;
+                     
                     bool calYaw = boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
                     ////////////////////////
                     if(calYaw)

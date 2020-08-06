@@ -128,6 +128,8 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
     res.is_dense = blob->is_dense;
     res.sensor_orientation_ = blob->sensor_orientation_;
     res.sensor_origin_ = blob->sensor_origin_;
+    res.width = res.points.size();
+    res.height = 1;
 }
 
 template <class PointType>
@@ -171,6 +173,8 @@ nimbus::BoxDetector<PointType>::getBaseModel(const boost::shared_ptr<const pcl::
     res.is_dense = raw->is_dense;
     res.sensor_orientation_ = raw->sensor_orientation_;
     res.sensor_origin_ = raw->sensor_origin_;
+    res.height = raw->height;
+    res.width = raw->width;
 }
         
 template <class PointType>
@@ -649,17 +653,17 @@ nimbus::BoxDetector<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
                                             pcl::PointCloud<pcl::PointXYZ> &res)
 {
     if (queue.isEmpty()) return;
-    
     typename pcl::PointCloud<PointType>::Ptr tempC (new pcl::PointCloud<PointType>());
     queue.dequeue(*tempC);
+
     int width = tempC->width;
     int height = tempC->height;
+
     std::vector<float> conf(width*height, 0);
     std::vector<float> mnCounter(width*height, 0);
     std::vector<float> addX(width*height, 0);
     std::vector<float> addY(width*height, 0);
     std::vector<float> addZ(width*height, 0);
-    //Point_Cloud sum;
     
     res.width = width;
     res.height = height;
@@ -669,19 +673,19 @@ nimbus::BoxDetector<PointType>::meanFilter(pcl::SynchronizedQueue<pcl::PointClou
     res.sensor_origin_ = tempC->sensor_origin_;
 
     while (!queue.isEmpty()){
-    int i = 0;
-    for(int i = 0; i < tempC->points.size(); i++){
-        if(!std::isnan(tempC->points[i].z)){
-            addX[i] += tempC->points[i].x;
-            addY[i] += tempC->points[i].y;
-            addZ[i] += tempC->points[i].z;
-            mnCounter[i] +=1;
-        }else{
-            conf[i] = 1;
-            mnCounter[i] = 0;
+        int i = 0;
+        for(int i = 0; i < tempC->points.size(); i++){
+            if(!std::isnan(tempC->points[i].z)){
+                addX[i] += tempC->points[i].x;
+                addY[i] += tempC->points[i].y;
+                addZ[i] += tempC->points[i].z;
+                mnCounter[i] +=1;
+            }else{
+                conf[i] = 1;
+                mnCounter[i] = 0;
+            }
         }
-    }
-    queue.dequeue(*tempC);
+        queue.dequeue(*tempC);
     }
     for(int i = 0; i < mnCounter.size(); i++){
         PointType temPoint;
