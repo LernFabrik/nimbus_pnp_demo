@@ -552,18 +552,14 @@ nimbus::BoxDetector<PointType>::getMeanCorners(const boost::shared_ptr<const pcl
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::copyPointCloud(*blob, cloud);
 
-    //unsigned int Xmin_indice = 0, Xmax_indice = 0, Ymin_indice = 0, Ymax_indice = 0;
-    float Xmax, Xmin, X_yMax, X_yMin;
-    float Ymax, Ymin, Y_xMax, Y_xMin;
-
     size_t i = 0;
     corners(0, 0) = corners(1, 0) = cloud.points[i].x;
     corners(2, 1) = corners(3, 1) = cloud.points[i].y;
     i += 1;
-    while (std::isnan(Xmax))
+    while (std::isnan(cloud.points[i].x))
     {
-        Xmax = Xmin = cloud.points[i].x;
-        Ymax = Ymin = cloud.points[i].y;
+        corners(0, 0) = corners(1, 0) = cloud.points[i].x;
+        corners(2, 1) = corners(3, 1) = cloud.points[i].y;
         i += 1;
     }
     // Calculate Maximum and Minimum values in X and Y axis
@@ -611,6 +607,7 @@ nimbus::BoxDetector<PointType>::getMeanCorners(const boost::shared_ptr<const pcl
         return false;
     }else{
         cornerBuffer /= static_cast<float>(frameSize);
+        cornerBufferCounter = 0;
         return true;
     }
 }

@@ -57,7 +57,7 @@ namespace nimbus
         private:
             visualization_msgs::Marker _marker;
             uint32_t _shape = visualization_msgs::Marker::CUBE;
-            Eigen::Matrix<float, 4, 2> cornerBuffer;
+            EIGEN_ALIGN32 Eigen::Matrix<float, 4, 2> cornerBuffer;
             int cornerBufferCounter;
         protected:
             ros::NodeHandle _nh;
@@ -95,11 +95,13 @@ namespace nimbus
              * @brief Get the Mean Corners object for give number of frames and stores
              * @param queue 
              * @param frameSize 
-             * @brief cornerBuffer: Eigen Matrix of size 4x2
-             *                  Xmin        Y_xMin
-             *                  Xmax        Y_xMax
-             *                  X_yMin      Ymin
-             *                  X_yMax      Ymax
+             * @brief cornerBuffer: Eigen Matrix of size 4x2 \
+             *                \--                 --/ 
+             *                \|Xmin        Y_xMin|/
+             *                \|Xmax        Y_xMax|/
+             *                \|X_yMin      Ymin  |/
+             *                \|X_yMax      Ymax  |/
+             *                \--                --
              */
             bool getMeanCorners(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob, int frameSize);
             /**
