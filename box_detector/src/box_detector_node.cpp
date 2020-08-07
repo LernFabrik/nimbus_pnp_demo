@@ -190,13 +190,13 @@ class Detector{
                     {
                         // Dump first few values of yaw make it stable
                         // ToDo replace this loop burner
-                        if(yawCounter <= 5)
-                        {
-                            yawCounter += 1;
-                            continue;
-                        }
-                        yawCounter = 0;
-                        
+                        // if(yawCounter <= 5)
+                        // {
+                        //     yawCounter += 1;
+                        //     continue;
+                        // }
+                        // yawCounter = 0;
+
                         if((yaw * 180)/M_PI > 90) yaw = yaw - M_PI;
                         if((yaw * 180)/M_PI < -90) yaw = yaw + M_PI;
                         ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );
