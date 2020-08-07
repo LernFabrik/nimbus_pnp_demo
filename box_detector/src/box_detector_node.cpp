@@ -69,6 +69,8 @@ class Detector{
 
         tf2_ros::StaticTransformBroadcaster broadCaster;
         geometry_msgs::TransformStamped pose;
+
+        unsigned int yawCounter;
         
     public:
         Detector(ros::NodeHandle nh): _nh(nh)
@@ -83,6 +85,7 @@ class Detector{
 
             pose.header.frame_id = "camera";
             pose.child_frame_id = "box";
+            yawCounter = 0;
         }
 
         ~Detector(){}
@@ -139,7 +142,8 @@ class Detector{
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
             typename pcl::PointCloud<pcl::PointXYZ>::Ptr ground (new pcl::PointCloud<pcl::PointXYZ>());
             pcl::io::loadPCDFile(file.str(), *ground);
-            boxDectect->getBaseModel(ground, blob, 0.05 ,*cloud);
+            bool model = boxDectect->getBaseModel(ground, blob, 0.05, file.str(), *cloud);
+            if(!model) return false;
             pcl::copyPointCloud(*cloud, res);
             return true;
         }
@@ -168,7 +172,7 @@ class Detector{
                     
                     _queue.enqueue(*rCloud);
                     // Queue sheild
-                    if(_queue.size() < 5) continue;
+                    if(_queue.size() < 2) continue;
                     
                     boxDectect->meanFilter(_queue, *meanCloud);
                     
@@ -176,12 +180,23 @@ class Detector{
                     if(!model) continue;
                     //// Core Operation ////
                     boxDectect->box3DCentroid(cloud, centroid);
-                    if(centroid.isZero()) continue;
-                     
+                    if(std::isnan(centroid[0])){
+                        ROS_ERROR ("Can not find the centroid");
+                        continue;
+                    }
                     bool calYaw = boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
                     ////////////////////////
                     if(calYaw)
                     {
+                        // Dump first few values of yaw make it stable
+                        // ToDo replace this loop burner
+                        if(yawCounter <= 5)
+                        {
+                            yawCounter += 1;
+                            continue;
+                        }
+                        yawCounter = 0;
+                        
                         if((yaw * 180)/M_PI > 90) yaw = yaw - M_PI;
                         if((yaw * 180)/M_PI < -90) yaw = yaw + M_PI;
                         ROS_INFO("Yaw :%f", (yaw * 180)/M_PI );

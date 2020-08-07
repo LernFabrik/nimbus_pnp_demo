@@ -4,8 +4,8 @@
     <node name="box_detector_node" pkg="box_detector" type="box_detector_node" output="screen">
         <param name="distance_max" type="double" value = "0.865" />
         <param name="distance_min" type="double" value = "0.75" />
-        <param name="per_width" type="double" value = "0.60" />
-        <param name="per_height" type="double" value = "0.4" />
+        <param name="per_width" type="double" value = "0.70" />
+        <param name="per_height" type="double" value = "0.45" />
     </node>
     
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.75 0.08 0.84 0.7071068 0.7071068 0 0 iiwa_link_0 camera 100" />

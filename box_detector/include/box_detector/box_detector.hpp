@@ -26,7 +26,7 @@
  */
 
 #pragma once
-
+#include <boost/filesystem.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
@@ -84,9 +84,10 @@ namespace nimbus
                                 int width, int height, float perW, float perH,
                                 pcl::PointCloud<PointType> &res);
 
-            void getBaseModel(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
+            bool getBaseModel(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &blob,
                           const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &raw,
                           double tolerence,
+                          const boost::filesystem::path &path,
                           pcl::PointCloud<pcl::PointXYZ> &res);
 
             void meanFilter(pcl::SynchronizedQueue<pcl::PointCloud<pcl::PointXYZ>> &queue, pcl::PointCloud<pcl::PointXYZ> &res);

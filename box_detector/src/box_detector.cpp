@@ -133,15 +133,18 @@ void nimbus::BoxDetector<PointType>::outlineRemover(const boost::shared_ptr< con
 }
 
 template <class PointType>
-void
+bool
 nimbus::BoxDetector<PointType>::getBaseModel(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &groud,
                                  const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ>> &raw,
                                  double tolerence,
+                                 const boost::filesystem::path &path,
                                  pcl::PointCloud<pcl::PointXYZ> &res)
 {
     if(groud->points.size() != raw->points.size()){
         ROS_ERROR ("Size of ground truth and raw point cloud is not matching");
-        return;
+        ROS_WARN ("Deleting the current file");
+        boost::filesystem::remove(path);
+        return false;
     }
     typename pcl::PointCloud<pcl::PointXYZ>::Ptr edit_cloud (new pcl::PointCloud<pcl::PointXYZ>());
     // Store the difference of z axis values;
@@ -175,6 +178,7 @@ nimbus::BoxDetector<PointType>::getBaseModel(const boost::shared_ptr<const pcl::
     res.sensor_origin_ = raw->sensor_origin_;
     res.height = raw->height;
     res.width = raw->width;
+    return true;
 }
         
 template <class PointType>
@@ -411,7 +415,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
 {
     Eigen::Matrix<float, 4, 2> corners;
     corners.setZero();
-    bool ready = this->getMeanCorners(blob, 50);
+    bool ready = this->getMeanCorners(blob, 5);
     if(!ready) return false;
     corners = cornerBuffer;
     cornerBuffer.setZero();
@@ -449,7 +453,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                     angle = M_PI + angle;
                     yaw = - angle + box_min_angle;
                 } else{
-                    yaw = (M_PI/2) + angle - box_min_angle;
+                    yaw = angle - box_max_angle;
                 }
                 ROS_ERROR ("Xmin - Width Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
@@ -465,7 +469,7 @@ nimbus::BoxDetector<PointType>::boxYaw(const boost::shared_ptr<const pcl::PointC
                     angle = M_PI + angle;
                     yaw =  angle + box_max_angle;
                 }else{
-                    yaw = (M_PI/2) + angle - box_min_angle;
+                    yaw = angle - box_max_angle;
                 }
                 ROS_ERROR ("Xmax - Length Side Slope angle: %f, yaw: %f", (angle * 180)/M_PI, (yaw * 180)/M_PI);
             }
