@@ -14,10 +14,10 @@ int main(int argc, char** argv){
     ros::Rate rate(10.0);
     while (node.ok()){
         geometry_msgs::TransformStamped transformStamped;
-        ros::Time past = ros::Time::now() - ros::Duration(10.0);
+        ros::Time past = ros::Time::now() - ros::Duration(5.0);
         try{
             transformStamped = tfBuffer.lookupTransform("iiwa_link_0", "box",
-                                        past, ros::Duration(5.0));
+                                        past, ros::Duration(3.0));
         }
         catch (tf2::TransformException &ex) {
             ROS_WARN("%s",ex.what());

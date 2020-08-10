@@ -116,7 +116,9 @@ void iwtros::iiwaMove::_ctrl_loop(){
                         home_position = false;
                         ROS_WARN("Home Pose");
                         motionExecution(home_pose);
-                }else{
+                }
+                if(ready_pick_pose) ROS_INFO("Ready to accept the goal");
+                else{
                         ROS_WARN("Doing Nothing and I am HAPPY!");
                 }
                 ros::spinOnce();        

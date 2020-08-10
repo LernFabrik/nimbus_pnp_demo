@@ -60,7 +60,7 @@ class Detector{
 
         bool _newCloud = false;
         std::mutex cloud_lock;
-        double distance_max, distance_min, per_width, per_height;
+        double distance_max, distance_min, per_width, per_height, width, length, height;
 
         nimbus::BoxDetector<pcl::PointXYZ> * boxDectect;
 
@@ -109,6 +109,9 @@ class Detector{
             nh.getParam("distance_min", distance_min);
             nh.getParam("per_width", per_width);
             nh.getParam("per_height", per_height);
+            nh.getParam("box_width", width);
+            nh.getParam("box_length", length);
+            nh.getParam("box_height", height);
         }
 
         bool groudTruth(const boost::shared_ptr< const pcl::PointCloud<pcl::PointXYZ>> blob, pcl::PointCloud<pcl::PointXYZ> &res)
@@ -142,7 +145,7 @@ class Detector{
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
             typename pcl::PointCloud<pcl::PointXYZ>::Ptr ground (new pcl::PointCloud<pcl::PointXYZ>());
             pcl::io::loadPCDFile(file.str(), *ground);
-            bool model = boxDectect->getBaseModel(ground, blob, 0.05, file.str(), *cloud);
+            bool model = boxDectect->getBaseModel(ground, blob, height - 0.02, file.str(), *cloud);
             if(!model) return false;
             pcl::copyPointCloud(*cloud, res);
             return true;
@@ -184,7 +187,7 @@ class Detector{
                         ROS_ERROR ("Can not find the centroid");
                         continue;
                     }
-                    bool calYaw = boxDectect->boxYaw(cloud, 0.125, 0.235, centroid, yaw);
+                    bool calYaw = boxDectect->boxYaw(cloud, width, length, centroid, yaw);
                     ////////////////////////
                     if(calYaw)
                     {
