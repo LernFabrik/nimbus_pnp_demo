@@ -18,7 +18,7 @@
 ```
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
-git clone https://github.com/prachandabhanu/nimbus_pnp_demo.git
+git clone https://github.com/LernFabrik/nimbus_pnp_demo.git
 cd ..
 source /opt/ros/melodic/setup.bash
 rosdep install --ignore-src --from-paths src -y
@@ -31,7 +31,7 @@ source  ~/catkin_ws/devel/setup.bash
 ```
 mkdir -p ~/catkin_kuka_ws/src
 cd ~/catkin_ws/src
-git clone https://github.com/prachandabhanu/nimbus_pnp_demo.git
+git clone https://github.com/LernFabrik/kuka_iiwa7_ros.git
 cd ..
 source /opt/ros/melodic/setup.bash
 rosdep install --ignore-src --from-paths src -y
@@ -39,6 +39,10 @@ catkin init
 catkin build
 source  ~/catkin_kuka_ws/devel/setup.bash
 ```
+
+## Run Box detection
+
+`roslaunch box_detector box_detector.launch`
 
 
 Read Documentation
