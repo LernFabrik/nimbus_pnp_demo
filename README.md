@@ -1,4 +1,4 @@
-<img src="./doc/images/IWT.png" align="right"
+<img src="./docs/images/IWT.png" align="right"
      title="IWT logo" width="184" height="55">
 
 # nimbus_pnp_demo
@@ -11,7 +11,34 @@
 |----------|------------|-----------|----------------------|
 |master    | [![ROS: Melodic](https://img.shields.io/badge/ROS-Melodic-blue)](https://img.shields.io/badge/ROS-Melodic-blue)    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)| ![Nimbus](https://github.com/prachandabhanu/nimbus_pnp_demo/workflows/Nimbus/badge.svg?branch=master) |
 
-# Setting up the evnironment
+## Setting up the evnironment
+
+### Nimbus Evnvironment 
+
+```
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+git clone https://github.com/prachandabhanu/nimbus_pnp_demo.git
+cd ..
+source /opt/ros/melodic/setup.bash
+rosdep install --ignore-src --from-paths src -y
+catkin init
+catkin build
+source  ~/catkin_ws/devel/setup.bash
+```
+
+### KUKA IIWA7 Environment
+```
+mkdir -p ~/catkin_kuka_ws/src
+cd ~/catkin_ws/src
+git clone https://github.com/prachandabhanu/nimbus_pnp_demo.git
+cd ..
+source /opt/ros/melodic/setup.bash
+rosdep install --ignore-src --from-paths src -y
+catkin init
+catkin build
+source  ~/catkin_kuka_ws/devel/setup.bash
+```
 
 
 Read Documentation
