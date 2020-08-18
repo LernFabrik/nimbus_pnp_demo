@@ -1,0 +1,31 @@
+actions: []
+authors: Vishnuprasad Prachandabhanu <prachandabhanu@iwt-bodensee.de>
+brief: ''
+bugtracker: ''
+depends:
+- tf2
+- moveit_core
+- pcl_conversions
+- roscpp
+- actionlib_msgs
+- rospy
+- sensor_msgs
+- moveit_msgs
+- moveit_visual_tools
+- catkin
+- moveit_ros_planning
+- geometry_msgs
+- tf
+- control_msgs
+- pcl_msgs
+- actionlib
+- moveit_ros_planning_interface
+- pcl_ros
+description: The kuka_control package
+license: TODO
+maintainers: vishnu <vishnu@todo.todo>
+msgs: []
+package_type: package
+repo_url: ''
+srvs: []
+url: ''

@@ -1,0 +1,6 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classnimbus_1_1cloudEdit.html" title="nimbus::cloudEdit\&lt;\l PointType \&gt;" alt="" coords="5,5,140,47"/>
+<area shape="rect" id="node2" href="$classnimbus_1_1cloudKeypoints.html" title="nimbus::cloudKeypoints\l\&lt; PointType \&gt;" alt="" coords="188,5,349,47"/>
+<area shape="rect" id="node3" href="$classnimbus_1_1cloudFeatures.html" title="Implementation of feature decriptor extraction algorithms. " alt="" coords="397,5,581,47"/>
+<area shape="rect" id="node4" href="$classnimbus_1_1cloudRecognition.html" title="nimbus::cloudRecognition\l\&lt; PointType, NormalType \&gt;" alt="" coords="629,5,813,47"/>
+</map>

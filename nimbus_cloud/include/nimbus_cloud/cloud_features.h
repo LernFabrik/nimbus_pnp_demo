@@ -47,12 +47,11 @@ namespace nimbus{
             cloudFeatures(ros::NodeHandle nh);
             ~cloudFeatures();
             //Functions
-            /** 
-             * @brief Kd Tree Search method
-             * @param input downsampled cloud
-             * @param input search radius
-             * @param output normal cloud
-            */
+            /**
+             * @brief 
+             * 
+             * @param blob 
+             */
             void cloudNormalEstimationOMP(const PointCloudConstPtr blob);
             
             /** 
