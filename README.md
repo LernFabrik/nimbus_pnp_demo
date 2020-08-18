@@ -9,7 +9,7 @@
 
 |Branch    | ROS Distro | Status (travis)  | Github Action |
 |----------|------------|-----------|----------------------|
-|master    | [![ROS: Melodic](https://img.shields.io/badge/ROS-Melodic-blue)](https://img.shields.io/badge/ROS-Melodic-blue)    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)| ![Nimbus](https://github.com/prachandabhanu/nimbus_pnp_demo/workflows/Nimbus/badge.svg?branch=master) |
+|master    | [![ROS: Melodic](https://img.shields.io/badge/ROS-Melodic-blue)](https://img.shields.io/badge/ROS-Melodic-blue)    |[![Build Status](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo.svg?branch=master)](https://travis-ci.org/prachandabhanu/nimbus_pnp_demo)| ![Nimbus](https://github.com/LernFabrik/nimbus_pnp_demo/workflows/Nimbus/badge.svg?branch=master) |
 
 ## Setting up the evnironment
 
