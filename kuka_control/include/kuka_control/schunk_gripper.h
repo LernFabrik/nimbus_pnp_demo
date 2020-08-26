@@ -30,7 +30,7 @@ namespace iwtros{
         void ackGripper();
     };
     
-    schunkGripper::schunkGripper(ros::NodeHandle nh) : _client("/iiwa/wsg50_gripper_action", true), _nh(nh){
+    schunkGripper::schunkGripper(ros::NodeHandle nh) : _client("/iiwa/wsg_50_tcp_driver/wsg50_gripper_action", true), _nh(nh){
         bool serverS = _client.waitForServer(ros::Duration(5.0));
         _pub = _nh.advertise<std_msgs::Bool>("ack_griper", 1);
         if(serverS) ROS_INFO("Gripper connection is established");
