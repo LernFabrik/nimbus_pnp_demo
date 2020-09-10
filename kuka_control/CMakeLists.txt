@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf
   tf2
+  iwtros_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -35,7 +36,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES kuka_control
-  CATKIN_DEPENDS actionlib actionlib_msgs control_msgs geometry_msgs moveit_core moveit_msgs moveit_ros_planning moveit_ros_planning_interface moveit_visual_tools pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs tf tf2
+  CATKIN_DEPENDS actionlib actionlib_msgs iwtros_msgs control_msgs geometry_msgs moveit_core moveit_msgs moveit_ros_planning moveit_ros_planning_interface moveit_visual_tools pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs tf tf2
 #  DEPENDS system_lib
 )
 

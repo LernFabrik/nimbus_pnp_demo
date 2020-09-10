@@ -145,7 +145,7 @@ class Detector{
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>());
             typename pcl::PointCloud<pcl::PointXYZ>::Ptr ground (new pcl::PointCloud<pcl::PointXYZ>());
             pcl::io::loadPCDFile(file.str(), *ground);
-            bool model = boxDectect->getBaseModel(ground, blob, height - 0.02, file.str(), *cloud);
+            bool model = boxDectect->getBaseModel(ground, blob, height - 0.04, file.str(), *cloud);
             if(!model) return false;
             pcl::copyPointCloud(*cloud, res);
             return true;

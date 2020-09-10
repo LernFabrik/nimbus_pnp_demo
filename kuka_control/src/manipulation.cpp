@@ -9,6 +9,7 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <geometry_msgs/Transform.h>
 
+
 iwtros::iiwaMove::iiwaMove(ros::NodeHandle nh, const std::string planning_group) : schunkGripper(nh), _nh(nh), move_group(planning_group){
         // Initialize the move_group
         // joint model group
@@ -27,6 +28,8 @@ void iwtros::iiwaMove::init(ros::NodeHandle nh){
         _initialized = true;
         ready_pick_pose = false;
         _accept_pose = false;
+        _plcSub = nh.subscribe<iwtros_msgs::plcControl>("plc_control", 10, boost::bind(&iiwaMove::plcCallback, this, _1));
+        _plcPub = nh.advertise<iwtros_msgs::kukaControl>("plc_listner", 10);
 }
 
 void iwtros::iiwaMove::_loadParam(){
@@ -73,6 +76,12 @@ void iwtros::iiwaMove::acceptCallback(const std_msgs::Bool::ConstPtr &data)
     this->_accept_pose = data->data;
 }
 
+void iwtros::iiwaMove::plcCallback(const iwtros_msgs::plcControl::ConstPtr& data){
+        _plcSubscriberControl.MoveHome = data->MoveHome;
+        _plcSubscriberControl.ConveyorPickPose = data->ConveyorPickPose;
+        _plcSubscriberControl.DHBWPickPose = data->DHBWPickPose;
+}
+
 void iwtros::iiwaMove::run(){
         if(!_initialized){
                 ROS_ERROR("IIWA Motion initialization is failed");
@@ -99,12 +108,14 @@ void iwtros::iiwaMove::_ctrl_loop(){
         ros::spinOnce();
         bool home_position = true;
         while(ros::ok()){
-                geometry_msgs::PoseStamped place_pose = generatePose(0.228, -0.428, 1.2215, M_PI, 0 , M_PI/4, "iiwa_link_0");
-                geometry_msgs::PoseStamped home_pose = generatePose(0.228, -0.428, 1.3, M_PI, 0 , M_PI/4, "iiwa_link_0");
+                geometry_msgs::PoseStamped place_pose = generatePose(0.228, -0.428, 1.24, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
+                geometry_msgs::PoseStamped home_pose = generatePose(0.228, 0.428, 1.3, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
                 geometry_msgs::PoseStamped test_pose = generatePose(0.6, 0.09, 1.12, M_PI, 0 , M_PI/4 + M_PI/2, "iiwa_link_0");
-                // this->pick_pose =  generatePose(0.694, 0.19, 1.14, M_PI, 0 , M_PI + M_PI/4, "iiwa_link_0");
-                // ready_pick_pose = true;
-                if(ready_pick_pose && _accept_pose){
+                _plcKUKA.ConveyorPlaced = false;
+                _plcKUKA.DHBWPlaced = false;
+                _plcKUKA.ReachedHome = false;
+
+                if(ready_pick_pose && _accept_pose && _plcSubscriberControl.ConveyorPickPose){
                         ready_pick_pose = false;
                         _accept_pose = false;
                         _sub.shutdown();
@@ -112,12 +123,35 @@ void iwtros::iiwaMove::_ctrl_loop(){
                         pnpPipeLine(this->pick_pose, place_pose, 0.15);
                         home_position = true;
                         _sub = _nh.subscribe<geometry_msgs::TransformStamped>("/detected_goal", 10, boost::bind(&iiwaMove::callback, this, _1)); 
-                }if(home_position){
+                        _plcKUKA.ConveyorPlaced = false;
+                        _plcKUKA.ReachedHome = false;
+                        _plcKUKA.DHBWPlaced = true;
+                        _plcPub.publish(_plcKUKA);
+                }
+                if(ready_pick_pose && _accept_pose && _plcSubscriberControl.DHBWPickPose){
+                        ready_pick_pose = false;
+                        _accept_pose = false;
+                        _sub.shutdown();
+                        ROS_WARN("Moving to Pick");
+                        pnpPipeLine(this->pick_pose, place_pose, 0.15);
+                        home_position = true;
+                        _sub = _nh.subscribe<geometry_msgs::TransformStamped>("/detected_goal", 10, boost::bind(&iiwaMove::callback, this, _1)); 
+                        _plcKUKA.DHBWPlaced = false;
+                        _plcKUKA.ReachedHome = false;
+                        _plcKUKA.ConveyorPlaced = true;
+                        _plcPub.publish(_plcKUKA);
+                }
+                if(_plcSubscriberControl.MoveHome){
                         home_position = false;
                         ROS_WARN("Home Pose");
                         motionExecution(home_pose);
+                        _plcKUKA.ConveyorPlaced = false;
+                        _plcKUKA.DHBWPlaced = false;
+                        _plcKUKA.ReachedHome = true;
+                        _plcPub.publish(_plcKUKA);
                 }
                 if(ready_pick_pose) ROS_INFO("Ready to accept the goal");
+                else if(ready_pick_pose && _accept_pose) ROS_INFO("Waiting for PLC");
                 else{
                         ROS_WARN("Doing Nothing and I am HAPPY!");
                 }
@@ -153,7 +187,10 @@ void iwtros::iiwaMove::pnpPipeLine(geometry_msgs::PoseStamped pick,
         place.pose.position.z += offset;
         motionExecution(place);
         this->closeGripper();
+        ros::Duration(1.0).sleep();
         this->ackGripper();
+        ros::Duration(1.0).sleep();
+        this->closeGripper();
 }
 
 void iwtros::iiwaMove::motionExecution(const geometry_msgs::PoseStamped pose){
